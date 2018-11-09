@@ -12,7 +12,7 @@ type = "docs"  # Do not modify.
 linktitle = "Example Page"
 [menu.tutorial]
   parent = "Example Topic"
-  weight = 1
+  weight = 3
 +++
 
 In this tutorial, I'll share my top 10 tips for getting started with Academic:
