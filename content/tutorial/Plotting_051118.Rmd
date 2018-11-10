@@ -253,21 +253,7 @@ library(gganimate)
 library(gapminder)
 ```
 
-This can be used to make animated plots, by default as gifs
-
-```{r gganimate example}
-ggplot(mtcars, aes(factor(cyl), mpg)) + 
-  geom_boxplot() + 
-  # Here comes the gganimate code
-  transition_states(
-    gear,
-    transition_length = 2,
-    state_length = 1
-  ) +
-  enter_fade() + 
-  exit_shrink() +
-  ease_aes('sine-in-out')
-```
+This can be used to make animated plots, by default as gifs - this example is from the github repository of gganimate.
 
 
 ```{r gganimate gapminder example}
