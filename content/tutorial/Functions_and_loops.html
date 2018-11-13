@@ -4,7 +4,7 @@ author: Fiona Seaton
 date: 2018-10-22
 
 draft: false
-toc: true
+toc: false
 type: docs
 
 linktitle: Loops and apply
@@ -16,9 +16,6 @@ menu:
 ---
 
 
-<div id="TOC">
-true
-</div>
 
 <p>So today we’re talking about all the things you do in R to make lots of things happen at once and hopefully make life easier for yourself.</p>
 <div id="functions" class="section level1">
@@ -181,13 +178,13 @@ for(i in seq(1,nrow(output))){
   output[i,] &lt;- rnorm(ncol(output))
 }})</code></pre>
 <pre><code>##    user  system elapsed 
-##    0.10    0.14    0.25</code></pre>
+##    0.09    0.08    0.20</code></pre>
 <pre class="r"><code>system.time({
   output &lt;- replicate(1000, rnorm(50))
 }
 )</code></pre>
 <pre><code>##    user  system elapsed 
-##    0.02    0.00    0.01</code></pre>
+##    0.02    0.00    0.02</code></pre>
 </div>
 </div>
 <div id="parallelising-code" class="section level1">
