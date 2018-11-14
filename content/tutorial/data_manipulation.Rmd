@@ -1,0 +1,339 @@
+---
+title: Data manipulation
+author: Fiona Seaton
+date: 2018-10-09
+
+draft: false
+toc: false
+type: docs
+
+linktitle: Data manipulation
+menu:
+  tutorial:
+    parent: R club
+    weight: 2
+---
+
+This is a tutorial I wrote for R club on data manipulation and exploration. There's several different ways of doing the same operation given, largely so that in future if you see one of them you know what is happening. 
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
+```
+
+
+First of all we need to load up the packages we want to use today
+
+```{r packages}
+library(readr)   ## for reading in data
+library(dplyr)   ## for manipulating dataframes
+library(tidyr)   ## for conversion from wide to long format
+## alternatively use library(tidyverse) which contains dplyr, readr, tidyr and more
+library(janitor) ## for data cleaning tools
+library(psych)   ## for some useful data exploration graphs
+library(summarytools) ## for some summary statistics and tables
+```
+
+Now I'm going to read in the data from the working directory, this data represents a simulated field survey across three countries of soil properties.
+I'm using read_csv here from the readr package to read in the csv file, its behaviour is slightly different than read.csv in base R. For instance character strings are kept as characters, not converted to factors which many people dislike about base R (I've found the vast majority of my data that comes as characters is categorical so it's not such an issue for me). It can also deal better with non-standard column names, which is why I'm using it here to show one of the cool things janitor does. The output is a tibble which displays different behaviour when printed to console
+Later on we'll read in a file using read.csv and you'll see some differences
+
+```{r data}
+CS <- read_csv("CS_fake.csv")
+CS
+```
+
+We can see that many of the columns have rather ugly names, which we're going to deal with using the clean_names function in janitor
+
+```{r column names}
+CS <- clean_names(CS)
+colnames(CS)
+
+```
+
+You can change the way in which janitor converts the names by changing the case argument. My personal favourite is screaming snake but that's mainly because of the delightful mental image.
+
+
+
+## Subsetting data
+Using base R 
+In base R the square bracket notation is used for subsetting, e.g. data[3,1] means the 3rd row and 1st column of the data
+```{r}
+CS[3,1]
+```
+
+Use the arrows to assign a new object, selecting all the rows but only certain columns.
+Columns can be selected by their numbers:
+```{r}
+CS_sel <- CS[,1:3]
+CS_sel <- CS[,c(1:3,5)]
+```
+
+Columns can also be selected by their names
+```{r}
+CS_sel <- CS[,c("plot_id","ph")]
+```
+
+There is also the subset function
+```{r}
+CS_sel <- subset(CS, select = c(plot_id, ph))
+```
+
+Alternatively the select`function within dplyr can be used to only pick some columns
+```{r}
+CS_sel <- select(CS, plot_id, carbon_percent, nitrogen_percent)
+CS_sel <- select(CS, plot_id, country:county)
+```
+
+select() has a couple of helper functions which can be used to select multiple columns that have certain parts of their names in common, this can also be done in base R with regular expressions but it's a bit clunky
+```{r}
+CS_sel <- select(CS, starts_with("count"))
+
+## base R version
+CS_sel <- CS[,grepl("^count",colnames(CS))]
+```
+
+
+
+```{r}
+## by row number
+CS_fil <- CS[1:100,]
+
+## by value of variable
+## only sites from HAR (categorical variable)
+CS_fil <- CS[CS$country == "HAR",]
+CS_fil <- subset(CS, country == "HAR")
+CS_fil <- filter(CS, country == "HAR")       ##dplyr
+
+## only carbon rich soils (numeric variable)
+CS_fil <- CS[CS$carbon_percent > 50,]
+CS_fil <- filter(CS, carbon_percent > 50)       ##dplyr
+## difference due to NA handling
+
+## two criteria
+## only high carbon soils from HAR
+CS_fil <- CS[(CS$carbon_percent > 50 & CS$country == "HAR"),]  
+CS_fil <- filter(CS, carbon_percent > 50 & country == "HAR") ##dplyr
+
+## Har and Val soils
+CS_fil <- CS[(CS$country=="HAR" | CS$country=="VAL"),]
+CS_fil <- filter(CS, country == "HAR"|country == "VAL")     ##dplyr
+```
+
+
+
+
+## Altering variables
+convert from number to categorical (i.e. factor) and vice versa
+```{r}
+CS$habitat <- as.factor(CS$habitat)
+summary(CS$habitat)
+
+# And back again!
+CS$habitat <- as.numeric(as.character(CS$habitat))
+```
+
+create new variable based on current variable
+numeric to factor
+```{r}
+CS$C_CAT <- cut(CS$carbon_percent, c(0,10,30,50,100),
+                labels=c("Mineral","Humus-mineral", "Organo-mineral","Organic"))
+CS
+```
+
+change labels of factor variable
+```{r}
+levels(CS$C_CAT)
+levels(CS$C_CAT) <- c("M","HM","OM","O")
+summary(CS$C_CAT)
+
+CS$C_CAT <- recode_factor(CS$C_CAT, 
+                          "O" = "Org")      ##dplyr
+
+summary(CS$C_CAT)
+```
+
+
+
+
+## Converting from wide to long format (and vice versa)
+Read in the data using the base R function read.csv
+```{r read}
+CS_INV <- read.csv("CS_inverts.csv")
+str(CS_INV)
+
+```
+
+Notice that we're now using str to see the data's structure - if we were to print CS_INV to screen it would try and print out every row of the data. This is because read.csv reads the data in as a data.frame not a tibble.
+
+This dataset represents counts of different types of mites and collembola from the soil samples. (This is all still simulated, no mesofauna were harmed in the making of this tutorial)
+
+The data is in wide format. Wide format means we have one sample (or site) per row, with multiple measurements across multiple columns.
+Long format is when we have the results of each measurement in one column, with a second column identifying the type of measurement. If this isn't particularly clear wait until you see the output of the following code and it should make more sense. 
+
+We're using the gather function from the tidyr package to convert the wide format data into long format.The reshape2 package also has functions to do this however I've discovered that my brain appears to max out at understanding one way to do it. Many use reshape2 and I can't give a good comparison of the two but tidyr works for me.
+
+```{r widelong}
+CS_INV_long <- gather(CS_INV, key = "Group", value = "Count", MITE1:COLL4)
+head(CS_INV_long)
+CS_INV_long <- filter(CS_INV_long, Count > 0)
+head(CS_INV_long)
+```
+
+To get back to wide format we use the spread function from the same package, specifying that we want all empty data combinations to be filled with zeros
+```{r}
+## long to wide format
+CS_INV_2 <- spread(CS_INV_long, key=Group, value=Count, fill=0)   ##tidyr
+head(CS_INV_2)
+
+```
+
+
+
+
+## Combining dataframes
+We have two datasets with different measurements from the same plots, we can merge these together using the ID as a reference
+
+within base R use the merge function. We specify the ID columns for both datasets (if they had the same name we could just set by = "that name"), we also specify that we want copies of all the rows, even if they have no corresponding match in the other data frame by setting all = TRUE
+```{r}
+CS_mer <- merge(CS, CS_INV, by.x = "plot_id", by.y = "ID", all = TRUE)
+```
+
+within dplyr the equivalent is the join set of commands
+
+```{r}
+CS_mer <- full_join(CS, CS_INV, by = c("plot_id" = "ID")) #does the same as before
+CS_mer <- inner_join(CS, CS_INV, by = c("plot_id" = "ID")) #returns only the rows with matching values
+CS_mer <- left_join(CS, CS_INV, by = c("plot_id" = "ID"))  #returns all the rows in the first dataframe and columns from both
+CS_mer <- right_join(CS, CS_INV, by = c("plot_id" = "ID")) #returns all the rows in the second dataframe and columns from both
+```
+
+There are also filtering joins within dplyr where the command returns only the columns from the first dataframe but filters the rows so that only the rows that appear in the second dataframe are returned, or alternatively those that don't appear with anti_join
+```{r}
+CS_join <- semi_join(CS_INV, CS, by = c("ID" = "plot_id"))
+CS_join <- anti_join(CS_INV, CS, by = c("ID" = "plot_id"))
+```
+
+
+
+
+## Combining multiple operations with the pipe %>%
+Say you want to create a long format dataframe with only the mites, and take the logarithm of the mite count. We could do this step by step as above, assigning a new object each time. However we can use the pipe to cut down on the amount of clutter in our R environment.
+The pipe %>% tells R to take the thing on the left of the pipe and apply the operation on the right to it. This means multiple operations can be chained together, hopefully making life a little easier.
+
+```{r pipe}
+CS_MITE_LONG <- CS_INV %>% select(ID, starts_with("MITE")) %>%        #Takes the CS_INV dataframe and selects only the ID and mite column
+  gather(key = "Group", value = "Count", starts_with("MITE")) %>%     #convert to long format
+  filter(Count > 0) %>%                                               #remove all zero count rows
+  mutate(log_Count = log(Count))                                      #mutate adds columns, here it is the log of the mite count
+head(CS_MITE_LONG)
+```
+
+How about calculating total mite and collembola counts and adding to the previous dataset?
+```{r pipe2}
+CS_full <- CS_INV %>% 
+  mutate(TOTAL_MITE = MITE1 + MITE2 + MITE3 + MITE4,
+         TOTAL_COLL = COLL1 + COLL2 + COLL3 + COLL4) %>%
+  select(ID, TOTAL_MITE, TOTAL_COLL) %>%
+  full_join(CS, by=c("ID" = "plot_id"))
+head(CS_full)
+```
+
+If you're interested in why the pipe has % signs on either side, it's the syntax used in R to show it's a function that does something with the things on either side of it. Another common example is %in% which tells you if the things in the object to the left are in the object to the right.
+e.g.
+```{r %in%}
+c(1,3,5) %in% c(2,3,4)
+``` 
+This is different to the usual R notation where you have a function with arguments declared within it.
+
+
+
+
+## Summary tables and statistics
+There's a _lot_ of different functions in R for summarising dataframes, so we're going to go through a few useful ones
+
+The summarytools package has a few useful functions, such as the summary table produced below:
+```{r summarytools, results = 'asis'}
+print(dfSummary(CS[,2:6], style = 'grid', graph.magnif = 0.85), method = "render", omit.headings = TRUE)
+```
+
+
+### Frequency tables and cross-tabulating factors
+Both janitor and summarytools offer functions for frequency tables and cross-tabulating factors. 
+
+```{r frequency tables summarytools, results = 'asis'}
+freq(CS$habitat, style = "rmarkdown", omit.headings = TRUE) ##summarytools
+print(ctable(CS$country, CS$county, prop = "n"), method = "render", omit.headings = TRUE) ##summarytools
+```
+
+
+For me janitor is a little more intuitive, and is also built to be compatible with the pipe operator
+
+```{r frequency tables}
+tabyl(CS, habitat)
+tabyl(CS, country, county) 
+tabyl(CS, country, habitat, county)
+```
+
+### Summary statistics by groups
+dataframes can be described by a categorical variable within both summarytools and psych.
+The describeBy function in psych is simple to write but only likes numeric variables. I also don't know of any way to pick and choose which stats are reported.
+
+```{r dataframe grouping variables}
+describeBy(CS, "country")
+```
+
+summarytools' version is longer to write but appears to be more flexible. I've set some parameters here to make it print better on this document - you may want to remove the style and method arguments to make it look nicer when working from the console.
+
+```{r grouping summarytools, results = 'asis'}
+## summarytools's version is longer to write but more flexible
+# First save the results
+CS_stats_by_country <- by(data = CS, 
+                          INDICES = CS$country, 
+                          FUN = descr, stats = c("mean", "sd", "min", "med", "max"), 
+                          transpose = TRUE, style = "rmarkdown", omit.headings = TRUE)
+# then view
+view(CS_stats_by_country, method = "pander")
+```
+
+You can do the above using group_by() then summarise() from the dplyr package but as far as I know you'll have to manually write out which stats you want which can be a hassle:
+
+```{r dataframe grouping summary dplyr}
+CS %>% group_by(country) %>%
+  summarise(mean_pH = mean(ph, na.rm = TRUE),
+            mean_carbon = mean(carbon_percent, na.rm = TRUE))
+```
+
+
+
+
+## Quick graphs
+While summary statistic tables can be very useful they are no substitute for plotting out your data. For an interesting discussion about this (with dinosaurs!) see [this page on how different datasets can be with the same summary statistics.](https://www.autodeskresearch.com/publications/samestats)
+
+Histograms are great for seeing what kind of distributions your variables have, I often use the multi.hist function from within the psych package to look at my data quickly and easily. Note that this function doesn't always return the plotting environment to what it was previously so we specify that the plotting parameters should return to one plot per page afterwards
+
+```{r histogram}
+multi.hist(CS[,4:6])
+par(mfrow=c(1,1)) 
+```
+
+The pairs plot within R, and the extensions upon it from many other package, is a great way to see how the variables from your dataset are related to each other.The pairs.panels function in psych shows the name of each variable and its histogram down the diagonal, the scatterplots on the lower triangle and the correlation coefficient on the upper triangle. You can change the type of correlation coefficient, and various plotting parameters easily.
+
+```{r pairsplot}
+pairs.panels(CS[,4:6])
+```
+
+If you want to take an in depth look at one of the plots and identify certain points then you can plot the scatterplot and use the identify function to interactively select points and get a label for what they are - this doesn't work in rmarkdown but you can try it yourself.
+
+```{r identify, results = "hide"}
+plot(nitrogen_percent ~ carbon_percent, CS)
+identify(CS$carbon_percent, CS$nitrogen_percent, labels=CS$plot_id)
+```
+
+Other useful plots include coplots in base R, which show how the relationship between two variables changes with a third variable
+```{r coplot, results = "hide"}
+coplot(ph ~ carbon_percent|nitrogen_percent, CS)
+```
+
+
+That's all that comes to mind right now. There are __*so many*__ different ways of manipulating and exploring datasets in R. These are just a few that I have found useful and I hope you do too! 
