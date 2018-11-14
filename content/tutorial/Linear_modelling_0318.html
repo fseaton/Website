@@ -3,7 +3,7 @@ title: Linear modelling
 author: Fiona Seaton
 date: 2018-03-28
 
-draft: true
+draft: false
 toc: false
 type: docs
 
@@ -16,43 +16,16 @@ menu:
 
 
 
-<p>This tutorial is an introduction to simple linear regression in R, I’ve split it into two sections: first using lm to fit responses to numerical predictors then the use of ANOVAs with categorical predictors.</p>
+<p>This tutorial is an introduction to simple linear regression in R, I’ve split it into two parts: this part is on modelling with numeric predictors.</p>
 <p>First we’re going to load in all the packages we’ll be using in this analysis.</p>
 <pre class="r"><code>library(agridat)          # a package of agricultural datasets
 library(summarytools)     # useful functions for summarising datasets
 library(psych)            # more functions for examining datasets
-library(dplyr)            # manipulating data</code></pre>
-<pre><code>## 
-## Attaching package: &#39;dplyr&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:stats&#39;:
-## 
-##     filter, lag</code></pre>
-<pre><code>## The following objects are masked from &#39;package:base&#39;:
-## 
-##     intersect, setdiff, setequal, union</code></pre>
-<pre class="r"><code>library(ggplot2)          # plotting</code></pre>
-<pre><code>## 
-## Attaching package: &#39;ggplot2&#39;</code></pre>
-<pre><code>## The following objects are masked from &#39;package:psych&#39;:
-## 
-##     %+%, alpha</code></pre>
-<pre class="r"><code>library(gridExtra)        # plotting in panels</code></pre>
-<pre><code>## 
-## Attaching package: &#39;gridExtra&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
-## 
-##     combine</code></pre>
-<pre class="r"><code>library(car)              # extensions for regression</code></pre>
-<pre><code>## Loading required package: carData</code></pre>
-<pre><code>## 
-## Attaching package: &#39;car&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
-## 
-##     recode</code></pre>
-<pre><code>## The following object is masked from &#39;package:psych&#39;:
-## 
-##     logit</code></pre>
-<pre class="r"><code>library(AICcmodavg)       # calculates AICc</code></pre>
+library(dplyr)            # manipulating data
+library(ggplot2)          # plotting
+library(gridExtra)        # plotting in panels
+library(car)              # extensions for regression
+library(AICcmodavg)       # calculates AICc</code></pre>
 <p>As we’re plotting with ggplot I’m going to set the theme now for the whole tutorial to make it look nicer to me - see the plotting tutorial for more information on the plotting commands.</p>
 <pre class="r"><code>theme_set(theme_bw() + theme(panel.grid = element_blank()))</code></pre>
 <div id="numerical-predictors" class="section level2">
@@ -199,13 +172,12 @@ IQR (CV) : 44.4 (1.34)</td>
 </div>
 <p>The different crops are all probably quite different in their responses, so we’re going to look at the summary statistics by group (again using the summarytools package, see the summary statistics tutorial for more methods).</p>
 <pre class="r"><code># First save the results
-Fert_stats_by_crop &lt;- by(data = Fert, 
-                          INDICES = Fert$crop, 
-                          FUN = descr, stats = c(&quot;mean&quot;, &quot;sd&quot;, &quot;min&quot;, &quot;med&quot;, &quot;max&quot;), 
-                          transpose = TRUE, style = &quot;rmarkdown&quot;, omit.headings = TRUE)
-# then view
-view(Fert_stats_by_crop, method = &quot;pander&quot;)</code></pre>
-<pre><code>##   
+by(data = Fert, 
+   INDICES = Fert$crop, 
+   FUN = descr, stats = c(&quot;mean&quot;, &quot;sd&quot;, &quot;min&quot;, &quot;med&quot;, &quot;max&quot;), 
+   transpose = TRUE, style = &quot;rmarkdown&quot;, omit.headings = TRUE)</code></pre>
+<pre><code>## Fert$crop: alfalfa
+##   
 ## **Group:** crop = alfalfa     
 ## **N:** 162   
 ## 
@@ -216,6 +188,8 @@ view(Fert_stats_by_crop, method = &quot;pander&quot;)</code></pre>
 ## |     **K** | 160.00 |  103.60 | 0.00 | 160.00 | 320.00 |
 ## |     **N** |   0.00 |    0.00 | 0.00 |   0.00 |   0.00 |
 ## | **yield** |   3.30 |    0.51 | 1.14 |   3.49 |   4.02 |
+## -------------------------------------------------------- 
+## Fert$crop: clover
 ##   
 ## **Group:** crop = clover     
 ## **N:** 162   
@@ -227,6 +201,8 @@ view(Fert_stats_by_crop, method = &quot;pander&quot;)</code></pre>
 ## |     **K** | 160.00 |  103.60 | 0.00 | 160.00 | 320.00 |
 ## |     **N** |   0.00 |    0.00 | 0.00 |   0.00 |   0.00 |
 ## | **yield** |   3.45 |    0.40 | 2.29 |   3.54 |   4.31 |
+## -------------------------------------------------------- 
+## Fert$crop: corn
 ##   
 ## **Group:** crop = corn     
 ## **N:** 162   
@@ -238,6 +214,8 @@ view(Fert_stats_by_crop, method = &quot;pander&quot;)</code></pre>
 ## |     **K** |   0.00 |    0.00 | 0.00 |   0.00 |   0.00 |
 ## |     **N** | 160.00 |  103.60 | 0.00 | 160.00 | 320.00 |
 ## | **yield** |  86.07 |   46.35 | 4.20 | 106.35 | 144.90 |
+## -------------------------------------------------------- 
+## Fert$crop: corn2
 ##   
 ## **Group:** crop = corn2     
 ## **N:** 162   
@@ -260,23 +238,13 @@ pairs.panels(clover[,c(2,3,4,6)])</code></pre>
     geom_point() +
     labs(x = &quot;Phosphorus (pounds/acre)&quot;, y = &quot;Yield (tons/acre)&quot;) +
     geom_smooth(method=&quot;lm&quot;))</code></pre>
-<pre><code>## Warning: Removed 48 rows containing non-finite values (stat_smooth).</code></pre>
-<pre><code>## Warning: Removed 48 rows containing missing values (geom_point).</code></pre>
 <p><img src="/tutorial/Linear_modelling_0318_files/figure-html/plotting%20clover%20yield-1.png" width="672" /></p>
 <pre class="r"><code>(Kplot &lt;- ggplot(clover, aes(x=K, y=yield)) +
     geom_point() +
     labs(x = &quot;Potassium (pounds/acre)&quot;, y = &quot;Yield (tons/acre)&quot;) +
     geom_smooth(method=&quot;lm&quot;))</code></pre>
-<pre><code>## Warning: Removed 48 rows containing non-finite values (stat_smooth).
-
-## Warning: Removed 48 rows containing missing values (geom_point).</code></pre>
 <p><img src="/tutorial/Linear_modelling_0318_files/figure-html/plotting%20clover%20yield-2.png" width="672" /></p>
 <pre class="r"><code>grid.arrange(Pplot, Kplot, nrow=1)</code></pre>
-<pre><code>## Warning: Removed 48 rows containing non-finite values (stat_smooth).
-
-## Warning: Removed 48 rows containing missing values (geom_point).</code></pre>
-<pre><code>## Warning: Removed 48 rows containing non-finite values (stat_smooth).</code></pre>
-<pre><code>## Warning: Removed 48 rows containing missing values (geom_point).</code></pre>
 <p><img src="/tutorial/Linear_modelling_0318_files/figure-html/plotting%20clover%20yield-3.png" width="672" /></p>
 <p>Now we want to fit our linear model and see if yield increases with fertiliser use. First we’re going to fit each fertiliser treatment separately, for demonstratory purposes.</p>
 <pre class="r"><code>cloverp.lm &lt;- lm(yield ~ P, clover)
@@ -335,8 +303,6 @@ summary(cloverk.lm)</code></pre>
 <pre class="r"><code>par(mfrow=c(2,2));plot(cloverk.lm);par(mfrow=c(1,1))</code></pre>
 <p><img src="/tutorial/Linear_modelling_0318_files/figure-html/clover%20k%20diagnostic-1.png" width="672" /></p>
 <pre class="r"><code>qqp(cloverk.lm)</code></pre>
-<pre><code>## Warning in rlm.default(x, y, weights, method = method, wt.method =
-## wt.method, : &#39;rlm&#39; failed to converge in 20 steps</code></pre>
 <p><img src="/tutorial/Linear_modelling_0318_files/figure-html/clover%20k%20diagnostic-2.png" width="672" /></p>
 <pre><code>## [1]  2 92</code></pre>
 <p>Now often we don’t expect a linear response, and we can fit polynomial models using lm. I’ll show you how to fit a quadratic function, there’s code in the heady.fertiliser help file that shows how they fit models with square root terms.</p>
@@ -367,6 +333,8 @@ summary(cloverp.lm2)</code></pre>
 <pre class="r"><code>qqp(cloverp.lm2)</code></pre>
 <p><img src="/tutorial/Linear_modelling_0318_files/figure-html/quadratic-2.png" width="672" /></p>
 <pre><code>## [1] 134 149</code></pre>
+<div id="two-predictors" class="section level3">
+<h3>Two predictors</h3>
 <p>Now this experiment involved adding the two fertilisers together and separately so we should be taking both treatments into account and fitting models with two predictors. First we can use an asterisk to estimate if there’s some kind of interaction effect between the predictors.</p>
 <pre class="r"><code>cloverpk.lm &lt;- lm(yield ~ K*P, clover)
 summary(cloverpk.lm)</code></pre>
@@ -424,263 +392,23 @@ summary(cloverpk.lm2)</code></pre>
 <pre class="r"><code>qqp(cloverpk.lm2)</code></pre>
 <p><img src="/tutorial/Linear_modelling_0318_files/figure-html/two%20predictors%20no%20interaction-2.png" width="672" /></p>
 <pre><code>## [1]  42 149</code></pre>
+<p>This model looks fairly similar in R<sup>2</sup> to the previous, however it is better practice to compare models using an information criterion. Information criterions look at how much variation is explained by the model and then penalise for model complexity. Therefore if two models explain the same amount of variation then the simpler model will be preferred. One of the most common ICs is AIC (Aikake’s An Information Criterion). This is present in base R, but we’re going to use a version that works better with small sample sizes: AICc. We’ll use the AICcmodavg package to do this.</p>
+<pre class="r"><code>AICc(cloverpk.lm)  </code></pre>
+<pre><code>## [1] 65.58202</code></pre>
+<pre class="r"><code>AICc(cloverpk.lm2) </code></pre>
+<pre><code>## [1] 65.18282</code></pre>
+<pre class="r"><code>AICc(cloverp.lm)</code></pre>
+<pre><code>## [1] 71.71905</code></pre>
+<pre class="r"><code>AICc(cloverk.lm)</code></pre>
+<pre><code>## [1] 112.1038</code></pre>
+<p>A commonly used rule of thumb is that if the AIC(c)’s are within 2 points of each other the models are essentially equivalent. We have a difference of 0.4 between the two models with both P and K as predictors so these are essentially equivalent. The model with P only is noticeably worse, and K doesn’t do well at all.</p>
+<div id="one-more-diagnostic-check-for-models-with-multiple-predictors" class="section level4">
+<h4>One more diagnostic check for models with multiple predictors!</h4>
 <p>If the predictors are highly correlated then the model struggles to estimate impact and estimated error of coefficients will be high. VIF estimates the influence of multicollinearity on estimated variance of predictors.</p>
 <pre class="r"><code>vif(cloverpk.lm2)</code></pre>
 <pre><code>##        K        P 
 ## 1.000349 1.000349</code></pre>
 <p>For more on vif see <a href="http://www.statisticshowto.com/variance-inflation-factor/" class="uri">http://www.statisticshowto.com/variance-inflation-factor/</a> Rough rules: VIF=1 not correlated; 1<VIF<5 moderately correlated; VIF>5 highly correlated. vif here is low, as we’d expect with a correlation coefficient of 0 between P and K</p>
-<p>model comparison using AICc AICc is the small-sample correction for AIC</p>
-<pre class="r"><code>AICc(cloverpk.lm)  </code></pre>
-<pre><code>## [1] 65.58202</code></pre>
-<pre class="r"><code>AICc(cloverpk.lm2) </code></pre>
-<pre><code>## [1] 65.18282</code></pre>
-<p>Models are essentially equivalent</p>
 </div>
-<div id="categorical-predictors" class="section level2">
-<h2>Categorical predictors</h2>
-<pre class="r"><code>apples &lt;- agridat::archbold.apple
-head(apples)</code></pre>
-<pre><code>##   rep row pos spacing    stock     gen yield trt
-## 1  R1   2   1       6 Seedling Redspur  70.9 601
-## 2  R1   2   2       6 Seedling  Golden 130.9 602
-## 3  R1   2   8       6    MM111 Redspur 114.5 611
-## 4  R1   2   7       6    MM111  Golden  90.5 612
-## 5  R1   2   3       6    M0007 Redspur 151.8 671
-## 6  R1   2   4       6    M0007  Golden 125.0 672</code></pre>
-<pre class="r"><code>str(apples)</code></pre>
-<pre><code>## &#39;data.frame&#39;:    120 obs. of  8 variables:
-##  $ rep    : Factor w/ 5 levels &quot;R1&quot;,&quot;R2&quot;,&quot;R3&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...
-##  $ row    : int  2 2 2 2 2 2 2 2 2 2 ...
-##  $ pos    : int  1 2 8 7 3 4 5 6 16 12 ...
-##  $ spacing: int  6 6 6 6 6 6 6 6 10 10 ...
-##  $ stock  : Factor w/ 4 levels &quot;M0007&quot;,&quot;MM106&quot;,..: 4 4 3 3 1 1 2 2 3 1 ...
-##  $ gen    : Factor w/ 2 levels &quot;Golden&quot;,&quot;Redspur&quot;: 2 1 2 1 2 1 2 1 2 2 ...
-##  $ yield  : num  70.9 130.9 114.5 90.5 151.8 ...
-##  $ trt    : int  601 602 611 612 671 672 661 662 1011 1071 ...</code></pre>
-<pre class="r"><code>summary(apples)</code></pre>
-<pre><code>##  rep          row              pos            spacing        stock   
-##  R1:24   Min.   : 2.000   Min.   : 1.000   Min.   : 6   M0007   :30  
-##  R2:24   1st Qu.: 5.750   1st Qu.: 5.000   1st Qu.: 6   MM106   :30  
-##  R3:24   Median : 9.000   Median :10.000   Median :10   MM111   :30  
-##  R4:24   Mean   : 9.017   Mean   : 9.242   Mean   :10   Seedling:30  
-##  R5:24   3rd Qu.:13.000   3rd Qu.:14.000   3rd Qu.:14                
-##          Max.   :16.000   Max.   :17.000   Max.   :14                
-##                                                                      
-##       gen         yield            trt        
-##  Golden :60   Min.   : 64.1   Min.   : 601.0  
-##  Redspur:60   1st Qu.:108.2   1st Qu.: 668.8  
-##               Median :147.1   Median :1036.5  
-##               Mean   :145.4   Mean   :1036.5  
-##               3rd Qu.:176.5   3rd Qu.:1404.2  
-##               Max.   :282.3   Max.   :1472.0  
-##               NA&#39;s   :28</code></pre>
-<pre class="r"><code>multi.hist(apples[,c(2,3,4,7,8)]) # only on numeric/integer variables</code></pre>
-<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/examine%20apples-1.png" width="672" /></p>
-<pre class="r"><code>pairs.panels(apples[,c(2,3,4,7,8)], ellipses=F)</code></pre>
-<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/examine%20apples-2.png" width="672" /></p>
-<p>examine data using graphs impact of spacing - do apples that are closer together have lower yield? There are only 3 spacing values so convert to category</p>
-<pre class="r"><code>apples$spacing2 &lt;- as.factor(apples$spacing)
-
-ggplot(apples, aes(spacing2, yield)) +
-    geom_boxplot() +
-    labs(x = &quot;Spacing (m)&quot;, y = &quot;Yield (kg)&quot;)</code></pre>
-<pre><code>## Warning: Removed 28 rows containing non-finite values (stat_boxplot).</code></pre>
-<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/apples%20spacing-1.png" width="672" /></p>
-<p>Within R lm and aov give the same result with a single categorical predictor only difference is output of summary functions, which can be changed using summary.lm and summary.aov</p>
-<p>now run linear model with lm to see if difference is statistically significant</p>
-<pre class="r"><code>apples.m &lt;- lm(yield ~ spacing2, data = apples)
-summary(apples.m)</code></pre>
-<pre><code>## 
-## Call:
-## lm(formula = yield ~ spacing2, data = apples)
-## 
-## Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -92.389 -30.577  -3.516  33.192 117.628 
-## 
-## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  120.566      7.382  16.332  &lt; 2e-16 ***
-## spacing210    35.924     11.073   3.244 0.001659 ** 
-## spacing214    44.107     10.966   4.022 0.000121 ***
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## 
-## Residual standard error: 43.67 on 89 degrees of freedom
-##   (28 observations deleted due to missingness)
-## Multiple R-squared:  0.1742, Adjusted R-squared:  0.1556 
-## F-statistic: 9.385 on 2 and 89 DF,  p-value: 0.0002003</code></pre>
-<p>output gives the difference between the 10m spacing and the 6m spacing, and the 14m spacing and the 6m spacing. The 6m spacing is given by the intercept</p>
-<p>use plots to examine residuals.</p>
-<pre class="r"><code>par(mfrow=c(2,2));plot(apples.m);par(mfrow=c(1,1)) </code></pre>
-<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/apples%20diagnostics-1.png" width="672" /></p>
-<pre class="r"><code>qqp(apples.m)</code></pre>
-<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/apples%20diagnostics-2.png" width="672" /></p>
-<pre><code>## [1] 10 84</code></pre>
-<p>If wish to do a Tukey’s HSD post-hoc test then need to fit model with aov rather than lm</p>
-<pre class="r"><code>apples.aov &lt;- aov(yield ~ spacing2, data = apples)
-summary(apples.aov)</code></pre>
-<pre><code>##             Df Sum Sq Mean Sq F value Pr(&gt;F)    
-## spacing2     2  35801   17900   9.385  2e-04 ***
-## Residuals   89 169750    1907                   
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## 28 observations deleted due to missingness</code></pre>
-<pre class="r"><code>summary(apples.m) # compare to lm output - different format but same numbers</code></pre>
-<pre><code>## 
-## Call:
-## lm(formula = yield ~ spacing2, data = apples)
-## 
-## Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -92.389 -30.577  -3.516  33.192 117.628 
-## 
-## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  120.566      7.382  16.332  &lt; 2e-16 ***
-## spacing210    35.924     11.073   3.244 0.001659 ** 
-## spacing214    44.107     10.966   4.022 0.000121 ***
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## 
-## Residual standard error: 43.67 on 89 degrees of freedom
-##   (28 observations deleted due to missingness)
-## Multiple R-squared:  0.1742, Adjusted R-squared:  0.1556 
-## F-statistic: 9.385 on 2 and 89 DF,  p-value: 0.0002003</code></pre>
-<pre class="r"><code>summary.lm(apples.aov)</code></pre>
-<pre><code>## 
-## Call:
-## aov(formula = yield ~ spacing2, data = apples)
-## 
-## Residuals:
-##     Min      1Q  Median      3Q     Max 
-## -92.389 -30.577  -3.516  33.192 117.628 
-## 
-## Coefficients:
-##             Estimate Std. Error t value Pr(&gt;|t|)    
-## (Intercept)  120.566      7.382  16.332  &lt; 2e-16 ***
-## spacing210    35.924     11.073   3.244 0.001659 ** 
-## spacing214    44.107     10.966   4.022 0.000121 ***
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
-## 
-## Residual standard error: 43.67 on 89 degrees of freedom
-##   (28 observations deleted due to missingness)
-## Multiple R-squared:  0.1742, Adjusted R-squared:  0.1556 
-## F-statistic: 9.385 on 2 and 89 DF,  p-value: 0.0002003</code></pre>
-<pre class="r"><code>TukeyHSD(apples.aov)</code></pre>
-<pre><code>##   Tukey multiple comparisons of means
-##     95% family-wise confidence level
-## 
-## Fit: aov(formula = yield ~ spacing2, data = apples)
-## 
-## $spacing2
-##            diff        lwr      upr     p adj
-## 10-6  35.923571   9.530402 62.31674 0.0046832
-## 14-6  44.106700  17.967561 70.24584 0.0003526
-## 14-10  8.183128 -19.396838 35.76309 0.7598733</code></pre>
-<div id="anova-with-unbalanced-designs-and-1-predictor" class="section level3">
-<h3>ANOVA with unbalanced designs and &gt; 1 predictor</h3>
-<p>Balanced designs have the same number of reps per treatment. This is often not the case, and the study is unbalanced. If the study is unbalanced the way in which predictors are evaluated impacts the result. The different ways of evaluating predictors are known as Type I, Type II and Type III ANOVAs</p>
-<p>To find out more about this go to <a href="http://goanna.cs.rmit.edu.au/~fscholer/anova.php" class="uri">http://goanna.cs.rmit.edu.au/~fscholer/anova.php</a></p>
-<p>For type III tests to be correct need to change the way R codes factors</p>
-<pre class="r"><code>options(contrasts = c(&quot;contr.sum&quot;, &quot;contr.poly&quot;)) </code></pre>
-<p>This won’t change type I or II Default is: options(contrasts = c(“contr.treatment”, “contr.poly”))</p>
-<pre class="r"><code>A        = c(&quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;)
-B        = c(&quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;x&quot;, &quot;x&quot;, &quot;x&quot;)
-C        = c(&quot;l&quot;, &quot;l&quot;, &quot;m&quot;, &quot;m&quot;, &quot;l&quot;, &quot;l&quot;, &quot;m&quot;, &quot;m&quot;, &quot;l&quot;, &quot;l&quot;, &quot;l&quot;, &quot;l&quot;)
-response = c( 14,  30,  15,  35,  50,  51,  30,  32,  51,  55,  53,  55)</code></pre>
-<pre class="r"><code>model = lm(response ~ A + B + C + A:B + A:C + B:C)
-
-anova(model)              # Type I tests</code></pre>
-<pre><code>## Analysis of Variance Table
-## 
-## Response: response
-##           Df  Sum Sq Mean Sq  F value    Pr(&gt;F)    
-## A          1 1488.37 1488.37 357.6869 7.614e-06 ***
-## B          1   18.22   18.22   4.3798 0.0905765 .  
-## C          1  390.15  390.15  93.7610 0.0001995 ***
-## A:B        1  278.68  278.68  66.9722 0.0004431 ***
-## A:C        1  339.51  339.51  81.5909 0.0002778 ***
-## B:C        1    8.51    8.51   2.0444 0.2121592    
-## Residuals  5   20.81    4.16                       
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
-<pre class="r"><code>Anova(model, type=&quot;II&quot;)   # Type II tests using car package</code></pre>
-<pre><code>## Anova Table (Type II tests)
-## 
-## Response: response
-##            Sum Sq Df  F value    Pr(&gt;F)    
-## A         1022.01  1 245.6103 1.923e-05 ***
-## B          131.25  1  31.5421 0.0024764 ** 
-## C          278.68  1  66.9722 0.0004431 ***
-## A:B        180.01  1  43.2593 0.0012194 ** 
-## A:C        321.01  1  77.1445 0.0003174 ***
-## B:C          8.51  1   2.0444 0.2121592    
-## Residuals   20.81  5                       
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
-<pre class="r"><code>Anova(model, type=&quot;III&quot;)  # Type III tests using car package</code></pre>
-<pre><code>## Anova Table (Type III tests)
-## 
-## Response: response
-##             Sum Sq Df   F value    Pr(&gt;F)    
-## (Intercept) 9490.0  1 2280.6425 7.605e-08 ***
-## A            724.5  1  174.1138 4.465e-05 ***
-## B            184.5  1   44.3408 0.0011526 ** 
-## C            180.0  1   43.2593 0.0012194 ** 
-## A:B          180.0  1   43.2593 0.0012194 ** 
-## A:C          321.0  1   77.1445 0.0003174 ***
-## B:C            8.5  1    2.0444 0.2121592    
-## Residuals     20.8  5                        
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
-<p>Balanced design shows no difference between type I, II and III</p>
-<pre class="r"><code>A        = c(&quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;)
-B        = c(&quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;)
-C        = c(&quot;l&quot;, &quot;l&quot;, &quot;m&quot;, &quot;m&quot;, &quot;l&quot;, &quot;l&quot;, &quot;m&quot;, &quot;m&quot;, &quot;l&quot;, &quot;l&quot;, &quot;m&quot;, &quot;m&quot;)
-response = c( 14,  30,  15,  35,  50,  51,  30,  32,  51,  55,  53,  55)</code></pre>
-<pre class="r"><code>model = lm(response ~ A + B + C + A:B + A:C + B:C)
-
-anova(model)              # Type I tests</code></pre>
-<pre><code>## Analysis of Variance Table
-## 
-## Response: response
-##           Df  Sum Sq Mean Sq F value Pr(&gt;F)
-## A          1  546.75  546.75  1.9146 0.2250
-## B          1  168.75  168.75  0.5909 0.4768
-## C          1  315.38  315.38  1.1044 0.3414
-## A:B        1   70.08   70.08  0.2454 0.6413
-## A:C        1    0.38    0.38  0.0013 0.9725
-## B:C        1   15.04   15.04  0.0527 0.8276
-## Residuals  5 1427.87  285.57</code></pre>
-<pre class="r"><code>Anova(model, type=&quot;II&quot;)   # Type II tests</code></pre>
-<pre><code>## Anova Table (Type II tests)
-## 
-## Response: response
-##            Sum Sq Df F value Pr(&gt;F)
-## A          782.04  1  2.7385 0.1589
-## B          168.75  1  0.5909 0.4768
-## C          315.38  1  1.1044 0.3414
-## A:B         84.37  1  0.2955 0.6101
-## A:C          0.38  1  0.0013 0.9725
-## B:C         15.04  1  0.0527 0.8276
-## Residuals 1427.87  5</code></pre>
-<pre class="r"><code>Anova(model, type=&quot;III&quot;)  # Type III tests </code></pre>
-<pre><code>## Anova Table (Type III tests)
-## 
-## Response: response
-##              Sum Sq Df F value    Pr(&gt;F)    
-## (Intercept) 16380.4  1 57.3593 0.0006367 ***
-## A             782.0  1  2.7385 0.1588624    
-## B             168.7  1  0.5909 0.4767865    
-## C             315.4  1  1.1044 0.3414277    
-## A:B            84.4  1  0.2955 0.6100929    
-## A:C             0.4  1  0.0013 0.9724954    
-## B:C            15.0  1  0.0527 0.8275710    
-## Residuals    1427.9  5                      
-## ---
-## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
-<p>The choice between the types of ANOVAs is beyond the scope of this R club and is hypothesis dependent.</p>
 </div>
 </div>
