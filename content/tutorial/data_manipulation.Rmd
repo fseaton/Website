@@ -11,7 +11,7 @@ linktitle: Data manipulation
 menu:
   tutorial:
     parent: R club
-    weight: 2
+    weight: 1
 ---
 
 This is a tutorial I wrote for R club on data manipulation and exploration. There's several different ways of doing the same operation given, largely so that in future if you see one of them you know what is happening. 
@@ -30,8 +30,6 @@ library(dplyr)   ## for manipulating dataframes
 library(tidyr)   ## for conversion from wide to long format
 ## alternatively use library(tidyverse) which contains dplyr, readr, tidyr and more
 library(janitor) ## for data cleaning tools
-library(psych)   ## for some useful data exploration graphs
-library(summarytools) ## for some summary statistics and tables
 ```
 
 Now I'm going to read in the data from the working directory, this data represents a simulated field survey across three countries of soil properties.
@@ -245,95 +243,3 @@ e.g.
 c(1,3,5) %in% c(2,3,4)
 ``` 
 This is different to the usual R notation where you have a function with arguments declared within it.
-
-
-
-
-## Summary tables and statistics
-There's a _lot_ of different functions in R for summarising dataframes, so we're going to go through a few useful ones
-
-The summarytools package has a few useful functions, such as the summary table produced below:
-```{r summarytools, results = 'asis'}
-print(dfSummary(CS[,2:6], style = 'grid', graph.magnif = 0.85), method = "render", omit.headings = TRUE)
-```
-
-
-### Frequency tables and cross-tabulating factors
-Both janitor and summarytools offer functions for frequency tables and cross-tabulating factors. 
-
-```{r frequency tables summarytools, results = 'asis'}
-freq(CS$habitat, style = "rmarkdown", omit.headings = TRUE) ##summarytools
-print(ctable(CS$country, CS$county, prop = "n"), method = "render", omit.headings = TRUE) ##summarytools
-```
-
-
-For me janitor is a little more intuitive, and is also built to be compatible with the pipe operator
-
-```{r frequency tables}
-tabyl(CS, habitat)
-tabyl(CS, country, county) 
-tabyl(CS, country, habitat, county)
-```
-
-### Summary statistics by groups
-dataframes can be described by a categorical variable within both summarytools and psych.
-The describeBy function in psych is simple to write but only likes numeric variables. I also don't know of any way to pick and choose which stats are reported.
-
-```{r dataframe grouping variables}
-describeBy(CS, "country")
-```
-
-summarytools' version is longer to write but appears to be more flexible. I've set some parameters here to make it print better on this document - you may want to remove the style and method arguments to make it look nicer when working from the console.
-
-```{r grouping summarytools, results = 'asis'}
-## summarytools's version is longer to write but more flexible
-# First save the results
-CS_stats_by_country <- by(data = CS, 
-                          INDICES = CS$country, 
-                          FUN = descr, stats = c("mean", "sd", "min", "med", "max"), 
-                          transpose = TRUE, style = "rmarkdown", omit.headings = TRUE)
-# then view
-view(CS_stats_by_country, method = "pander")
-```
-
-You can do the above using group_by() then summarise() from the dplyr package but as far as I know you'll have to manually write out which stats you want which can be a hassle:
-
-```{r dataframe grouping summary dplyr}
-CS %>% group_by(country) %>%
-  summarise(mean_pH = mean(ph, na.rm = TRUE),
-            mean_carbon = mean(carbon_percent, na.rm = TRUE))
-```
-
-
-
-
-## Quick graphs
-While summary statistic tables can be very useful they are no substitute for plotting out your data. For an interesting discussion about this (with dinosaurs!) see [this page on how different datasets can be with the same summary statistics.](https://www.autodeskresearch.com/publications/samestats)
-
-Histograms are great for seeing what kind of distributions your variables have, I often use the multi.hist function from within the psych package to look at my data quickly and easily. Note that this function doesn't always return the plotting environment to what it was previously so we specify that the plotting parameters should return to one plot per page afterwards
-
-```{r histogram}
-multi.hist(CS[,4:6])
-par(mfrow=c(1,1)) 
-```
-
-The pairs plot within R, and the extensions upon it from many other package, is a great way to see how the variables from your dataset are related to each other.The pairs.panels function in psych shows the name of each variable and its histogram down the diagonal, the scatterplots on the lower triangle and the correlation coefficient on the upper triangle. You can change the type of correlation coefficient, and various plotting parameters easily.
-
-```{r pairsplot}
-pairs.panels(CS[,4:6])
-```
-
-If you want to take an in depth look at one of the plots and identify certain points then you can plot the scatterplot and use the identify function to interactively select points and get a label for what they are - this doesn't work in rmarkdown but you can try it yourself.
-
-```{r identify, results = "hide"}
-plot(nitrogen_percent ~ carbon_percent, CS)
-identify(CS$carbon_percent, CS$nitrogen_percent, labels=CS$plot_id)
-```
-
-Other useful plots include coplots in base R, which show how the relationship between two variables changes with a third variable
-```{r coplot, results = "hide"}
-coplot(ph ~ carbon_percent|nitrogen_percent, CS)
-```
-
-
-That's all that comes to mind right now. There are __*so many*__ different ways of manipulating and exploring datasets in R. These are just a few that I have found useful and I hope you do too! 
