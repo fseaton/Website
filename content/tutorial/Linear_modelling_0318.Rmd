@@ -1,0 +1,143 @@
+---
+title: Linear modelling
+author: Fiona Seaton
+date: 2018-03-28
+
+draft: true
+toc: false
+type: docs
+
+linktitle: Linear modelling
+menu:
+  tutorial:
+    parent: R club
+    weight: 4
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+```{r packages}
+library(agridat)   # a package of agricultural datasets
+library(psych)     # useful functions for examining datasets
+library(tidyverse) # contains ggplot2 and dplyr
+library(gridExtra) # plotting in panels
+library(car)       # extensions for regression
+library(AICcmodavg)# calculates AICc
+```
+
+Setting the ggplot theme to look nicer
+```{r}
+theme_set(theme_bw() + theme(panel.grid = element_blank()))
+```
+
+## Numerical predictors
+```{r examine fert}
+Fert <- heady.fertilizer
+# examining dataset using base and psych functions
+str(Fert)
+summary(Fert)
+multi.hist(Fert[,2:6])   # psych function, requires input to be numeric
+pairs.panels(Fert[,2:6])
+describeBy(Fert, group = "crop")
+```
+
+We're going to treat the fertiliser treatments as numeric as there are sufficient different treatments to fit linear regression
+
+```{r examine clover}
+clover <- filter(Fert, crop == "clover")
+summary(clover)
+clover <- droplevels(clover)
+multi.hist(clover[,2:6])
+pairs.panels(clover[,c(2,3,4,6)])
+```
+
+plotting clover yield against fertiliser use using ggplot
+
+```{r plotting clover yield}
+(Pplot <- ggplot(clover, aes(x=P, y=yield)) +
+    geom_point() +
+    labs(x = "Phosphorus (pounds/acre)", y = "Yield (tons/acre)") +
+    geom_smooth(method="lm"))
+
+(Kplot <- ggplot(clover, aes(x=K, y=yield)) +
+    geom_point() +
+    labs(x = "Potassium (pounds/acre)", y = "Yield (tons/acre)") +
+    geom_smooth(method="lm"))
+
+grid.arrange(Pplot, Kplot, nrow=1)
+```
+
+Fit linear model
+```{r clover p model}
+cloverp.lm <- lm(yield ~ P, clover)
+summary(cloverp.lm)
+```
+
+Diagnostic plots. 
+Setting graphical parameters using par so you get two four plots in a 2x2 matrix then reverting to previous setting
+
+```{r clover p diagnostic}
+par(mfrow=c(2,2));plot(cloverp.lm);par(mfrow=c(1,1))
+qqp(cloverp.lm)
+```
+
+Fit linear model
+```{r clover k model}
+cloverk.lm <- lm(yield ~ K, clover)
+summary(cloverk.lm)
+```
+
+Diagnostic plots. 
+Setting graphical parameters using par so you get two four plots in a 2x2 matrix then reverting to previous setting
+
+```{r clover k diagnostic}
+par(mfrow=c(2,2));plot(cloverk.lm);par(mfrow=c(1,1))
+qqp(cloverk.lm)
+```
+
+```{r quadratic}
+cloverp.lm2 <- lm(yield ~ I(P^2) + P, clover)
+summary(cloverp.lm2)
+par(mfrow=c(2,2));plot(cloverp.lm2);par(mfrow=c(1,1))
+qqp(cloverp.lm2)
+```
+
+```{r two predictors}
+## fit linear model with two predictors
+## with interaction effect
+cloverpk.lm <- lm(yield ~ K*P, clover)
+summary(cloverpk.lm)
+par(mfrow=c(2,2));plot(cloverpk.lm);par(mfrow=c(1,1))
+qqp(cloverpk.lm)
+
+cloverpk.lm2 <- lm(yield ~ K + P, clover)
+summary(cloverpk.lm2)
+par(mfrow=c(2,2));plot(cloverpk.lm2);par(mfrow=c(1,1))
+qqp(cloverpk.lm2)
+```
+
+Check for whether variance of an estimate is inflated by multicollinearity of predictors if predictors are highly correlated then the model struggles to estimate impact and estimated error of coefficients will be high. VIF estimates the influence of multicollinearity on estimated variance of predictors
+
+```{r vif}
+vif(cloverpk.lm2)
+
+```
+
+For more on vif see http://www.statisticshowto.com/variance-inflation-factor/
+Rough rules: VIF=1 not correlated; 1<VIF<5 moderately correlated; VIF>5 highly correlated. vif here is low, as we'd expect with a correlation coefficient of 0 between P and K
+
+model comparison using AICc
+ AICc is the small-sample correction for AIC
+
+```{r}
+AICc(cloverpk.lm)  
+AICc(cloverpk.lm2) 
+
+```
+
+
+# models are essentially equivalent
+
