@@ -18,43 +18,58 @@ menu:
 knitr::opts_chunk$set(echo = TRUE)
 ```
 
+This tutorial is an introduction to simple linear regression in R, I've split it into two sections: first using lm to fit responses to numerical predictors then the use of ANOVAs with categorical predictors.
+
+First we're going to load in all the packages we'll be using in this analysis.
 
 ```{r packages}
-library(agridat)   # a package of agricultural datasets
-library(psych)     # useful functions for examining datasets
-library(tidyverse) # contains ggplot2 and dplyr
-library(gridExtra) # plotting in panels
-library(car)       # extensions for regression
-library(AICcmodavg)# calculates AICc
+library(agridat)          # a package of agricultural datasets
+library(summarytools)     # useful functions for summarising datasets
+library(psych)            # more functions for examining datasets
+library(dplyr)            # manipulating data
+library(ggplot2)          # plotting
+library(gridExtra)        # plotting in panels
+library(car)              # extensions for regression
+library(AICcmodavg)       # calculates AICc
 ```
 
-Setting the ggplot theme to look nicer
-```{r}
+As we're plotting with ggplot I'm going to set the theme now for the whole tutorial to make it look nicer to me - see the plotting tutorial for more information on the plotting commands.
+```{r theme_set}
 theme_set(theme_bw() + theme(panel.grid = element_blank()))
 ```
 
 ## Numerical predictors
+We're going to be using data from an experiment in 1952-3 looking at the impact of fertiliser application upon corn, clover and alfafa yields. A copy of the data is held in the agridat package, and the original analysis is linked to on the help page for the dataset.
+We're going to read it in and take a quick look at it using the summarytools package:
+
 ```{r examine fert}
 Fert <- heady.fertilizer
-# examining dataset using base and psych functions
-str(Fert)
-summary(Fert)
-multi.hist(Fert[,2:6])   # psych function, requires input to be numeric
-pairs.panels(Fert[,2:6])
-describeBy(Fert, group = "crop")
+# examining dataset using summarytools functions
+print(dfSummary(Fert, style = 'grid', graph.magnif = 0.85), method = "render", omit.headings = TRUE)
 ```
 
-We're going to treat the fertiliser treatments as numeric as there are sufficient different treatments to fit linear regression
+The different crops are all probably quite different in their responses, so we're going to look at the summary statistics by group (again using the summarytools package, see the summary statistics tutorial for more methods).
+```{r Summary fert by crop}
+# First save the results
+Fert_stats_by_crop <- by(data = Fert, 
+                          INDICES = Fert$crop, 
+                          FUN = descr, stats = c("mean", "sd", "min", "med", "max"), 
+                          transpose = TRUE, style = "rmarkdown", omit.headings = TRUE)
+# then view
+view(Fert_stats_by_crop, method = "pander")
+```
+
+We're going to treat the fertiliser treatments as numeric as there are sufficient different treatments to fit linear regression, and for ease of interpretation.
+
+Let's take the response of clover to fertilisation, first we'll filter out the rows that correspond to clover and use droplevels to get rid of the empty levels within the crop variable. We'll use pairs.panels from the psych package to take a quick look at the relationships between the variables.
 
 ```{r examine clover}
 clover <- filter(Fert, crop == "clover")
-summary(clover)
 clover <- droplevels(clover)
-multi.hist(clover[,2:6])
 pairs.panels(clover[,c(2,3,4,6)])
 ```
 
-plotting clover yield against fertiliser use using ggplot
+We can see there is no correlation between the treatments, as expected as this experiment was designed that way. There was no nitrogen added to the clover crops as clover is nitrogen fixing so we're only looking at the impact of P and K fertiliser addition. We'll plot more detailed plots of the yield against the P and K fertiliser use using ggplot.
 
 ```{r plotting clover yield}
 (Pplot <- ggplot(clover, aes(x=P, y=yield)) +
@@ -70,34 +85,43 @@ plotting clover yield against fertiliser use using ggplot
 grid.arrange(Pplot, Kplot, nrow=1)
 ```
 
-Fit linear model
+Now we want to fit our linear model and see if yield increases with fertiliser use. First we're going to fit each fertiliser treatment separately, for demonstratory purposes.
 ```{r clover p model}
 cloverp.lm <- lm(yield ~ P, clover)
 summary(cloverp.lm)
 ```
 
-Diagnostic plots. 
-Setting graphical parameters using par so you get two four plots in a 2x2 matrix then reverting to previous setting
+We can see from the bottom lines of the output that P fertiliser has a significant impact upon clover yield at p = 1.415e-11, the F statistic is usually reported as well. Here we'd say that F~1,112~=56.65. The R^2^ value is 0.336, which seems promising for crop research!
+
+Whenever you do a linear model make sure to check the assumptions! You can plot the model which will return four graphs: the qqplot, the residuals against fitted values, the standardised residuals against fitted values, and the leverage plot. We want the points in the qqplot to lie near the qqline, if they don't then the assumption of normality of residuals is violated. If there residuals appear to change consistently with the fitted values then that could mean the assumption of homoscedasticity, or homogeneity of variance, is violated which can be a big problem in model fitting. Here I've used par to set graphical parameters so you get two four plots in a 2x2 matrix then reverted to the previous setting.
 
 ```{r clover p diagnostic}
 par(mfrow=c(2,2));plot(cloverp.lm);par(mfrow=c(1,1))
+```
+
+It can be difficult to interpret diagnostic plots sometimes, and I've found the qqp function within the car package very useful as it gives confidence intervals around the qqline so you can see more clearly which points are a problem.
+```{r car qqp cloverp}
 qqp(cloverp.lm)
 ```
 
-Fit linear model
+
+Now we're going to repeat the above for K fertiliser addition!
+First, model fitting:
 ```{r clover k model}
 cloverk.lm <- lm(yield ~ K, clover)
 summary(cloverk.lm)
 ```
+There doesn't appear to be much of an impact of K fertiliser on yield, p is significant but the R^2^ is very low.
 
-Diagnostic plots. 
-Setting graphical parameters using par so you get two four plots in a 2x2 matrix then reverting to previous setting
+Now, model checking:
 
 ```{r clover k diagnostic}
 par(mfrow=c(2,2));plot(cloverk.lm);par(mfrow=c(1,1))
 qqp(cloverk.lm)
 ```
 
+
+Now often we don't expect a linear response, and we can fit polynomial models using lm. I'll show you how to fit a quadratic function, there's code in the heady.fertiliser help file that shows how they fit models with square root terms.
 ```{r quadratic}
 cloverp.lm2 <- lm(yield ~ I(P^2) + P, clover)
 summary(cloverp.lm2)
@@ -105,21 +129,26 @@ par(mfrow=c(2,2));plot(cloverp.lm2);par(mfrow=c(1,1))
 qqp(cloverp.lm2)
 ```
 
+
+Now this experiment involved adding the two fertilisers together and separately so we should be taking both treatments into account and fitting models with two predictors. First we can use an asterisk to estimate if there's some kind of interaction effect between the predictors.
+
 ```{r two predictors}
-## fit linear model with two predictors
-## with interaction effect
 cloverpk.lm <- lm(yield ~ K*P, clover)
 summary(cloverpk.lm)
 par(mfrow=c(2,2));plot(cloverpk.lm);par(mfrow=c(1,1))
 qqp(cloverpk.lm)
+```
 
+Here we can see that this model is significant at p < 0.0001, and it has the highest R^2^ yet! However notice that if you look at the coefficients the interaction effect (K:P) is low, and p = 0.19. We can try fitting the model without this interaction and see what happens:
+```{r two predictors no interaction}
 cloverpk.lm2 <- lm(yield ~ K + P, clover)
 summary(cloverpk.lm2)
 par(mfrow=c(2,2));plot(cloverpk.lm2);par(mfrow=c(1,1))
 qqp(cloverpk.lm2)
 ```
 
-Check for whether variance of an estimate is inflated by multicollinearity of predictors if predictors are highly correlated then the model struggles to estimate impact and estimated error of coefficients will be high. VIF estimates the influence of multicollinearity on estimated variance of predictors
+
+If the predictors are highly correlated then the model struggles to estimate impact and estimated error of coefficients will be high. VIF estimates the influence of multicollinearity on estimated variance of predictors.
 
 ```{r vif}
 vif(cloverpk.lm2)
@@ -130,7 +159,7 @@ For more on vif see http://www.statisticshowto.com/variance-inflation-factor/
 Rough rules: VIF=1 not correlated; 1<VIF<5 moderately correlated; VIF>5 highly correlated. vif here is low, as we'd expect with a correlation coefficient of 0 between P and K
 
 model comparison using AICc
- AICc is the small-sample correction for AIC
+AICc is the small-sample correction for AIC
 
 ```{r}
 AICc(cloverpk.lm)  
