@@ -6,7 +6,7 @@
 
 # The URL of your website.
 # End your URL with a `/` trailing slash, e.g. `https://example.com/`.
-baseurl = "https://fionamseaton.netlify.com/"
+baseurl = "https://www.fionamseaton.com/"
 
 # Title of your site
 title = "Fiona Seaton"
@@ -281,10 +281,10 @@ enableGitInfo = false
   url = "#about"
   weight = 1
 
-[[menu.main]]
-  name = "Publications"
-  url = "#publications_selected"
-  weight = 4
+#[[menu.main]]
+#  name = "Publications"
+#  url = "#publications_selected"
+#  weight = 4
 
 [[menu.main]]
   name = "Posts"
