@@ -11,7 +11,7 @@ linktitle: Plotting
 menu:
   tutorial:
     parent: R club
-    weight: 1
+    weight: 3
 ---
 
 ```{r setup, include=FALSE}

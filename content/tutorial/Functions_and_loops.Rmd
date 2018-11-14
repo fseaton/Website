@@ -11,7 +11,7 @@ linktitle: Loops and apply
 menu:
   tutorial:
     parent: R club
-    weight: 2
+    weight: 4
 
 ---
 

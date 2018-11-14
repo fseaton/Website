@@ -11,7 +11,7 @@ linktitle: Loops and apply
 menu:
   tutorial:
     parent: R club
-    weight: 2
+    weight: 4
 
 ---
 
@@ -178,13 +178,13 @@ for(i in seq(1,nrow(output))){
   output[i,] &lt;- rnorm(ncol(output))
 }})</code></pre>
 <pre><code>##    user  system elapsed 
-##    0.09    0.08    0.20</code></pre>
+##    0.14    0.05    0.19</code></pre>
 <pre class="r"><code>system.time({
   output &lt;- replicate(1000, rnorm(50))
 }
 )</code></pre>
 <pre><code>##    user  system elapsed 
-##    0.02    0.00    0.02</code></pre>
+##    0.01    0.00    0.02</code></pre>
 </div>
 </div>
 <div id="parallelising-code" class="section level1">
