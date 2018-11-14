@@ -1,0 +1,601 @@
+---
+title: Linear modelling
+author: Fiona Seaton
+date: 2018-03-28
+
+draft: true
+toc: false
+type: docs
+
+linktitle: Linear modelling
+menu:
+  tutorial:
+    parent: R club
+    weight: 5
+---
+
+
+
+<pre class="r"><code>library(agridat)   # a package of agricultural datasets
+library(psych)     # useful functions for examining datasets
+library(tidyverse) # contains ggplot2 and dplyr</code></pre>
+<pre><code>## -- Attaching packages ---------------------------------------------------------------- tidyverse 1.2.1 --</code></pre>
+<pre><code>## v ggplot2 3.1.0     v purrr   0.2.5
+## v tibble  1.4.2     v dplyr   0.7.7
+## v tidyr   0.8.2     v stringr 1.3.1
+## v readr   1.1.1     v forcats 0.3.0</code></pre>
+<pre><code>## -- Conflicts ------------------------------------------------------------------- tidyverse_conflicts() --
+## x ggplot2::%+%()   masks psych::%+%()
+## x ggplot2::alpha() masks psych::alpha()
+## x dplyr::filter()  masks stats::filter()
+## x dplyr::lag()     masks stats::lag()</code></pre>
+<pre class="r"><code>library(gridExtra) # plotting in panels</code></pre>
+<pre><code>## 
+## Attaching package: &#39;gridExtra&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
+## 
+##     combine</code></pre>
+<pre class="r"><code>library(car)       # extensions for regression</code></pre>
+<pre><code>## Loading required package: carData</code></pre>
+<pre><code>## 
+## Attaching package: &#39;car&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:dplyr&#39;:
+## 
+##     recode</code></pre>
+<pre><code>## The following object is masked from &#39;package:purrr&#39;:
+## 
+##     some</code></pre>
+<pre><code>## The following object is masked from &#39;package:psych&#39;:
+## 
+##     logit</code></pre>
+<pre class="r"><code>library(AICcmodavg)# calculates AICc</code></pre>
+<p>Setting the ggplot theme to look nicer</p>
+<pre class="r"><code>theme_set(theme_bw() + theme(panel.grid = element_blank()))</code></pre>
+<div id="numerical-predictors" class="section level2">
+<h2>Numerical predictors</h2>
+<pre class="r"><code>Fert &lt;- heady.fertilizer
+# examining dataset using base and psych functions
+str(Fert)</code></pre>
+<pre><code>## &#39;data.frame&#39;:    648 obs. of  6 variables:
+##  $ crop : Factor w/ 4 levels &quot;alfalfa&quot;,&quot;clover&quot;,..: 3 3 3 3 3 3 3 3 3 3 ...
+##  $ rep  : int  1 2 1 2 1 2 1 2 1 2 ...
+##  $ P    : int  0 0 40 40 80 80 120 120 160 160 ...
+##  $ K    : int  0 0 0 0 0 0 0 0 0 0 ...
+##  $ N    : int  0 0 0 0 0 0 0 0 0 0 ...
+##  $ yield: num  24.5 6.2 26.7 29.6 22.1 30.6 44.2 21.9 12 34 ...</code></pre>
+<pre class="r"><code>summary(Fert)</code></pre>
+<pre><code>##       crop          rep            P             K             N      
+##  alfalfa:162   Min.   :1.0   Min.   :  0   Min.   :  0   Min.   :  0  
+##  clover :162   1st Qu.:1.0   1st Qu.: 80   1st Qu.:  0   1st Qu.:  0  
+##  corn   :162   Median :1.5   Median :160   Median :  0   Median :  0  
+##  corn2  :162   Mean   :1.5   Mean   :160   Mean   : 80   Mean   : 80  
+##                3rd Qu.:2.0   3rd Qu.:240   3rd Qu.:160   3rd Qu.:160  
+##                Max.   :2.0   Max.   :320   Max.   :320   Max.   :320  
+##                                                                       
+##      yield        
+##  Min.   :  1.140  
+##  1st Qu.:  3.500  
+##  Median :  4.185  
+##  Mean   : 31.461  
+##  3rd Qu.: 47.900  
+##  Max.   :144.900  
+##  NA&#39;s   :192</code></pre>
+<pre class="r"><code>multi.hist(Fert[,2:6])   # psych function, requires input to be numeric</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/examine%20fert-1.png" width="672" /></p>
+<pre class="r"><code>pairs.panels(Fert[,2:6])</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/examine%20fert-2.png" width="672" /></p>
+<pre class="r"><code>describeBy(Fert, group = &quot;crop&quot;)</code></pre>
+<pre><code>## 
+##  Descriptive statistics by group 
+## group: alfalfa
+##       vars   n  mean     sd median trimmed    mad  min    max  range  skew
+## crop*    1 162   1.0   0.00   1.00    1.00   0.00 1.00   1.00   0.00   NaN
+## rep      2 162   1.5   0.50   1.50    1.50   0.74 1.00   2.00   1.00  0.00
+## P        3 162 160.0 103.60 160.00  160.00 118.61 0.00 320.00 320.00  0.00
+## K        4 162 160.0 103.60 160.00  160.00 118.61 0.00 320.00 320.00  0.00
+## N        5 162   0.0   0.00   0.00    0.00   0.00 0.00   0.00   0.00   NaN
+## yield    6 114   3.3   0.51   3.49    3.38   0.30 1.14   4.02   2.88 -1.69
+##       kurtosis   se
+## crop*      NaN 0.00
+## rep      -2.01 0.04
+## P        -1.25 8.14
+## K        -1.25 8.14
+## N          NaN 0.00
+## yield     3.03 0.05
+## -------------------------------------------------------- 
+## group: clover
+##       vars   n   mean    sd median trimmed    mad  min    max  range  skew
+## crop*    1 162   2.00   0.0   2.00    2.00   0.00 2.00   2.00   0.00   NaN
+## rep      2 162   1.50   0.5   1.50    1.50   0.74 1.00   2.00   1.00  0.00
+## P        3 162 160.00 103.6 160.00  160.00 118.61 0.00 320.00 320.00  0.00
+## K        4 162 160.00 103.6 160.00  160.00 118.61 0.00 320.00 320.00  0.00
+## N        5 162   0.00   0.0   0.00    0.00   0.00 0.00   0.00   0.00   NaN
+## yield    6 114   3.45   0.4   3.54    3.47   0.34 2.29   4.31   2.02 -0.54
+##       kurtosis   se
+## crop*      NaN 0.00
+## rep      -2.01 0.04
+## P        -1.25 8.14
+## K        -1.25 8.14
+## N          NaN 0.00
+## yield     0.06 0.04
+## -------------------------------------------------------- 
+## group: corn
+##       vars   n   mean     sd median trimmed    mad min   max range  skew
+## crop*    1 162   3.00   0.00   3.00    3.00   0.00 3.0   3.0   0.0   NaN
+## rep      2 162   1.50   0.50   1.50    1.50   0.74 1.0   2.0   1.0  0.00
+## P        3 162 160.00 103.60 160.00  160.00 118.61 0.0 320.0 320.0  0.00
+## K        4 162   0.00   0.00   0.00    0.00   0.00 0.0   0.0   0.0   NaN
+## N        5 162 160.00 103.60 160.00  160.00 118.61 0.0 320.0 320.0  0.00
+## yield    6 114  86.07  46.35 106.35   88.98  36.18 4.2 144.9 140.7 -0.52
+##       kurtosis   se
+## crop*      NaN 0.00
+## rep      -2.01 0.04
+## P        -1.25 8.14
+## K          NaN 0.00
+## N        -1.25 8.14
+## yield    -1.35 4.34
+## -------------------------------------------------------- 
+## group: corn2
+##       vars   n   mean     sd median trimmed    mad min   max range skew
+## crop*    1 162   4.00   0.00   4.00    4.00   0.00 4.0   4.0     0  NaN
+## rep      2 162   1.50   0.50   1.50    1.50   0.74 1.0   2.0     1 0.00
+## P        3 162 160.00 103.60 160.00  160.00 118.61 0.0 320.0   320 0.00
+## K        4 162   0.00   0.00   0.00    0.00   0.00 0.0   0.0     0  NaN
+## N        5 162 160.00 103.60 160.00  160.00 118.61 0.0 320.0   320 0.00
+## yield    6 114  33.03  21.29  28.45   31.97  26.46 3.7  76.7    73 0.36
+##       kurtosis   se
+## crop*      NaN 0.00
+## rep      -2.01 0.04
+## P        -1.25 8.14
+## K          NaN 0.00
+## N        -1.25 8.14
+## yield    -1.25 1.99</code></pre>
+<p>We’re going to treat the fertiliser treatments as numeric as there are sufficient different treatments to fit linear regression</p>
+<pre class="r"><code>clover &lt;- filter(Fert, crop == &quot;clover&quot;)
+summary(clover)</code></pre>
+<pre><code>##       crop          rep            P             K             N    
+##  alfalfa:  0   Min.   :1.0   Min.   :  0   Min.   :  0   Min.   :0  
+##  clover :162   1st Qu.:1.0   1st Qu.: 80   1st Qu.: 80   1st Qu.:0  
+##  corn   :  0   Median :1.5   Median :160   Median :160   Median :0  
+##  corn2  :  0   Mean   :1.5   Mean   :160   Mean   :160   Mean   :0  
+##                3rd Qu.:2.0   3rd Qu.:240   3rd Qu.:240   3rd Qu.:0  
+##                Max.   :2.0   Max.   :320   Max.   :320   Max.   :0  
+##                                                                     
+##      yield      
+##  Min.   :2.290  
+##  1st Qu.:3.203  
+##  Median :3.540  
+##  Mean   :3.446  
+##  3rd Qu.:3.680  
+##  Max.   :4.310  
+##  NA&#39;s   :48</code></pre>
+<pre class="r"><code>clover &lt;- droplevels(clover)
+multi.hist(clover[,2:6])</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/examine%20clover-1.png" width="672" /></p>
+<pre class="r"><code>pairs.panels(clover[,c(2,3,4,6)])</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/examine%20clover-2.png" width="672" /></p>
+<p>plotting clover yield against fertiliser use using ggplot</p>
+<pre class="r"><code>(Pplot &lt;- ggplot(clover, aes(x=P, y=yield)) +
+    geom_point() +
+    labs(x = &quot;Phosphorus (pounds/acre)&quot;, y = &quot;Yield (tons/acre)&quot;) +
+    geom_smooth(method=&quot;lm&quot;))</code></pre>
+<pre><code>## Warning: Removed 48 rows containing non-finite values (stat_smooth).</code></pre>
+<pre><code>## Warning: Removed 48 rows containing missing values (geom_point).</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/plotting%20clover%20yield-1.png" width="672" /></p>
+<pre class="r"><code>(Kplot &lt;- ggplot(clover, aes(x=K, y=yield)) +
+    geom_point() +
+    labs(x = &quot;Potassium (pounds/acre)&quot;, y = &quot;Yield (tons/acre)&quot;) +
+    geom_smooth(method=&quot;lm&quot;))</code></pre>
+<pre><code>## Warning: Removed 48 rows containing non-finite values (stat_smooth).
+
+## Warning: Removed 48 rows containing missing values (geom_point).</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/plotting%20clover%20yield-2.png" width="672" /></p>
+<pre class="r"><code>grid.arrange(Pplot, Kplot, nrow=1)</code></pre>
+<pre><code>## Warning: Removed 48 rows containing non-finite values (stat_smooth).
+
+## Warning: Removed 48 rows containing missing values (geom_point).</code></pre>
+<pre><code>## Warning: Removed 48 rows containing non-finite values (stat_smooth).</code></pre>
+<pre><code>## Warning: Removed 48 rows containing missing values (geom_point).</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/plotting%20clover%20yield-3.png" width="672" /></p>
+<p>Fit linear model</p>
+<pre class="r"><code>cloverp.lm &lt;- lm(yield ~ P, clover)
+summary(cloverp.lm)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = yield ~ P, data = clover)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.82080 -0.20802  0.00309  0.22818  1.03179 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept) 3.110801   0.053920  57.693  &lt; 2e-16 ***
+## P           0.002093   0.000278   7.527 1.41e-11 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.3254 on 112 degrees of freedom
+##   (48 observations deleted due to missingness)
+## Multiple R-squared:  0.3359, Adjusted R-squared:   0.33 
+## F-statistic: 56.65 on 1 and 112 DF,  p-value: 1.415e-11</code></pre>
+<p>Diagnostic plots. Setting graphical parameters using par so you get two four plots in a 2x2 matrix then reverting to previous setting</p>
+<pre class="r"><code>par(mfrow=c(2,2));plot(cloverp.lm);par(mfrow=c(1,1))</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/clover%20p%20diagnostic-1.png" width="672" /></p>
+<pre class="r"><code>qqp(cloverp.lm)</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/clover%20p%20diagnostic-2.png" width="672" /></p>
+<pre><code>## [1] 134 149</code></pre>
+<p>Fit linear model</p>
+<pre class="r"><code>cloverk.lm &lt;- lm(yield ~ K, clover)
+summary(cloverk.lm)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = yield ~ K, data = clover)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1.02188 -0.20374  0.03939  0.23812  0.73065 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept) 3.3118757  0.0643688  51.452   &lt;2e-16 ***
+## K           0.0008359  0.0003319   2.518   0.0132 *  
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.3884 on 112 degrees of freedom
+##   (48 observations deleted due to missingness)
+## Multiple R-squared:  0.0536, Adjusted R-squared:  0.04515 
+## F-statistic: 6.343 on 1 and 112 DF,  p-value: 0.0132</code></pre>
+<p>Diagnostic plots. Setting graphical parameters using par so you get two four plots in a 2x2 matrix then reverting to previous setting</p>
+<pre class="r"><code>par(mfrow=c(2,2));plot(cloverk.lm);par(mfrow=c(1,1))</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/clover%20k%20diagnostic-1.png" width="672" /></p>
+<pre class="r"><code>qqp(cloverk.lm)</code></pre>
+<pre><code>## Warning in rlm.default(x, y, weights, method = method, wt.method =
+## wt.method, : &#39;rlm&#39; failed to converge in 20 steps</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/clover%20k%20diagnostic-2.png" width="672" /></p>
+<pre><code>## [1]  2 92</code></pre>
+<pre class="r"><code>cloverp.lm2 &lt;- lm(yield ~ I(P^2) + P, clover)
+summary(cloverp.lm2)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = yield ~ I(P^2) + P, data = clover)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.60457 -0.17493 -0.03652  0.12533  0.93882 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  2.886e+00  5.722e-02  50.430  &lt; 2e-16 ***
+## I(P^2)      -1.656e-05  2.513e-06  -6.589 1.54e-09 ***
+## P            7.392e-03  8.384e-04   8.817 1.87e-14 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.2771 on 111 degrees of freedom
+##   (48 observations deleted due to missingness)
+## Multiple R-squared:  0.5226, Adjusted R-squared:  0.514 
+## F-statistic: 60.76 on 2 and 111 DF,  p-value: &lt; 2.2e-16</code></pre>
+<pre class="r"><code>par(mfrow=c(2,2));plot(cloverp.lm2);par(mfrow=c(1,1))</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/quadratic-1.png" width="672" /></p>
+<pre class="r"><code>qqp(cloverp.lm2)</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/quadratic-2.png" width="672" /></p>
+<pre><code>## [1] 134 149</code></pre>
+<pre class="r"><code>## fit linear model with two predictors
+## with interaction effect
+cloverpk.lm &lt;- lm(yield ~ K*P, clover)
+summary(cloverpk.lm)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = yield ~ K * P, data = clover)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.65579 -0.20341  0.00423  0.18278  0.86017 
+## 
+## Coefficients:
+##               Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  2.902e+00  9.213e-02  31.501  &lt; 2e-16 ***
+## K            1.324e-03  4.811e-04   2.752  0.00693 ** 
+## P            2.605e-03  4.811e-04   5.414 3.65e-07 ***
+## K:P         -3.295e-06  2.497e-06  -1.319  0.18985    
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.3136 on 110 degrees of freedom
+##   (48 observations deleted due to missingness)
+## Multiple R-squared:  0.3942, Adjusted R-squared:  0.3777 
+## F-statistic: 23.86 on 3 and 110 DF,  p-value: 5.716e-12</code></pre>
+<pre class="r"><code>par(mfrow=c(2,2));plot(cloverpk.lm);par(mfrow=c(1,1))</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/two%20predictors-1.png" width="672" /></p>
+<pre class="r"><code>qqp(cloverpk.lm)</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/two%20predictors-2.png" width="672" /></p>
+<pre><code>## [1]  42 149</code></pre>
+<pre class="r"><code>cloverpk.lm2 &lt;- lm(yield ~ K + P, clover)
+summary(cloverpk.lm2)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = yield ~ K + P, data = clover)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -0.69566 -0.20316  0.00249  0.19212  0.90308 
+## 
+## Coefficients:
+##              Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept) 2.9856599  0.0670865  44.505  &lt; 2e-16 ***
+## K           0.0007970  0.0002689   2.964  0.00371 ** 
+## P           0.0020777  0.0002689   7.727  5.3e-12 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.3146 on 111 degrees of freedom
+##   (48 observations deleted due to missingness)
+## Multiple R-squared:  0.3846, Adjusted R-squared:  0.3735 
+## F-statistic: 34.69 on 2 and 111 DF,  p-value: 1.983e-12</code></pre>
+<pre class="r"><code>par(mfrow=c(2,2));plot(cloverpk.lm2);par(mfrow=c(1,1))</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/two%20predictors-3.png" width="672" /></p>
+<pre class="r"><code>qqp(cloverpk.lm2)</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/two%20predictors-4.png" width="672" /></p>
+<pre><code>## [1]  42 149</code></pre>
+<p>Check for whether variance of an estimate is inflated by multicollinearity of predictors if predictors are highly correlated then the model struggles to estimate impact and estimated error of coefficients will be high. VIF estimates the influence of multicollinearity on estimated variance of predictors</p>
+<pre class="r"><code>vif(cloverpk.lm2)</code></pre>
+<pre><code>##        K        P 
+## 1.000349 1.000349</code></pre>
+<p>For more on vif see <a href="http://www.statisticshowto.com/variance-inflation-factor/" class="uri">http://www.statisticshowto.com/variance-inflation-factor/</a> Rough rules: VIF=1 not correlated; 1<VIF<5 moderately correlated; VIF>5 highly correlated. vif here is low, as we’d expect with a correlation coefficient of 0 between P and K</p>
+<p>model comparison using AICc AICc is the small-sample correction for AIC</p>
+<pre class="r"><code>AICc(cloverpk.lm)  </code></pre>
+<pre><code>## [1] 65.58202</code></pre>
+<pre class="r"><code>AICc(cloverpk.lm2) </code></pre>
+<pre><code>## [1] 65.18282</code></pre>
+<p>Models are essentially equivalent</p>
+</div>
+<div id="categorical-predictors" class="section level2">
+<h2>Categorical predictors</h2>
+<pre class="r"><code>apples &lt;- agridat::archbold.apple
+head(apples)</code></pre>
+<pre><code>##   rep row pos spacing    stock     gen yield trt
+## 1  R1   2   1       6 Seedling Redspur  70.9 601
+## 2  R1   2   2       6 Seedling  Golden 130.9 602
+## 3  R1   2   8       6    MM111 Redspur 114.5 611
+## 4  R1   2   7       6    MM111  Golden  90.5 612
+## 5  R1   2   3       6    M0007 Redspur 151.8 671
+## 6  R1   2   4       6    M0007  Golden 125.0 672</code></pre>
+<pre class="r"><code>str(apples)</code></pre>
+<pre><code>## &#39;data.frame&#39;:    120 obs. of  8 variables:
+##  $ rep    : Factor w/ 5 levels &quot;R1&quot;,&quot;R2&quot;,&quot;R3&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...
+##  $ row    : int  2 2 2 2 2 2 2 2 2 2 ...
+##  $ pos    : int  1 2 8 7 3 4 5 6 16 12 ...
+##  $ spacing: int  6 6 6 6 6 6 6 6 10 10 ...
+##  $ stock  : Factor w/ 4 levels &quot;M0007&quot;,&quot;MM106&quot;,..: 4 4 3 3 1 1 2 2 3 1 ...
+##  $ gen    : Factor w/ 2 levels &quot;Golden&quot;,&quot;Redspur&quot;: 2 1 2 1 2 1 2 1 2 2 ...
+##  $ yield  : num  70.9 130.9 114.5 90.5 151.8 ...
+##  $ trt    : int  601 602 611 612 671 672 661 662 1011 1071 ...</code></pre>
+<pre class="r"><code>summary(apples)</code></pre>
+<pre><code>##  rep          row              pos            spacing        stock   
+##  R1:24   Min.   : 2.000   Min.   : 1.000   Min.   : 6   M0007   :30  
+##  R2:24   1st Qu.: 5.750   1st Qu.: 5.000   1st Qu.: 6   MM106   :30  
+##  R3:24   Median : 9.000   Median :10.000   Median :10   MM111   :30  
+##  R4:24   Mean   : 9.017   Mean   : 9.242   Mean   :10   Seedling:30  
+##  R5:24   3rd Qu.:13.000   3rd Qu.:14.000   3rd Qu.:14                
+##          Max.   :16.000   Max.   :17.000   Max.   :14                
+##                                                                      
+##       gen         yield            trt        
+##  Golden :60   Min.   : 64.1   Min.   : 601.0  
+##  Redspur:60   1st Qu.:108.2   1st Qu.: 668.8  
+##               Median :147.1   Median :1036.5  
+##               Mean   :145.4   Mean   :1036.5  
+##               3rd Qu.:176.5   3rd Qu.:1404.2  
+##               Max.   :282.3   Max.   :1472.0  
+##               NA&#39;s   :28</code></pre>
+<pre class="r"><code>multi.hist(apples[,c(2,3,4,7,8)]) # only on numeric/integer variables</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/examine%20apples-1.png" width="672" /></p>
+<pre class="r"><code>pairs.panels(apples[,c(2,3,4,7,8)], ellipses=F)</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/examine%20apples-2.png" width="672" /></p>
+<p>examine data using graphs impact of spacing - do apples that are closer together have lower yield? There are only 3 spacing values so convert to category</p>
+<pre class="r"><code>apples$spacing2 &lt;- as.factor(apples$spacing)
+
+ggplot(apples, aes(spacing2, yield)) +
+    geom_boxplot() +
+    labs(x = &quot;Spacing (m)&quot;, y = &quot;Yield (kg)&quot;)</code></pre>
+<pre><code>## Warning: Removed 28 rows containing non-finite values (stat_boxplot).</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/apples%20spacing-1.png" width="672" /></p>
+<p>Within R lm and aov give the same result with a single categorical predictor only difference is output of summary functions, which can be changed using summary.lm and summary.aov</p>
+<p>now run linear model with lm to see if difference is statistically significant</p>
+<pre class="r"><code>apples.m &lt;- lm(yield ~ spacing2, data = apples)
+summary(apples.m)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = yield ~ spacing2, data = apples)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -92.389 -30.577  -3.516  33.192 117.628 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  120.566      7.382  16.332  &lt; 2e-16 ***
+## spacing210    35.924     11.073   3.244 0.001659 ** 
+## spacing214    44.107     10.966   4.022 0.000121 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 43.67 on 89 degrees of freedom
+##   (28 observations deleted due to missingness)
+## Multiple R-squared:  0.1742, Adjusted R-squared:  0.1556 
+## F-statistic: 9.385 on 2 and 89 DF,  p-value: 0.0002003</code></pre>
+<p>output gives the difference between the 10m spacing and the 6m spacing, and the 14m spacing and the 6m spacing. The 6m spacing is given by the intercept</p>
+<p>use plots to examine residuals.</p>
+<pre class="r"><code>par(mfrow=c(2,2));plot(apples.m);par(mfrow=c(1,1)) </code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/apples%20diagnostics-1.png" width="672" /></p>
+<pre class="r"><code>qqp(apples.m)</code></pre>
+<p><img src="/tutorial/Linear_modelling_0318_files/figure-html/apples%20diagnostics-2.png" width="672" /></p>
+<pre><code>## [1] 10 84</code></pre>
+<p>If wish to do a Tukey’s HSD post-hoc test then need to fit model with aov rather than lm</p>
+<pre class="r"><code>apples.aov &lt;- aov(yield ~ spacing2, data = apples)
+summary(apples.aov)</code></pre>
+<pre><code>##             Df Sum Sq Mean Sq F value Pr(&gt;F)    
+## spacing2     2  35801   17900   9.385  2e-04 ***
+## Residuals   89 169750    1907                   
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 28 observations deleted due to missingness</code></pre>
+<pre class="r"><code>summary(apples.m) # compare to lm output - different format but same numbers</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = yield ~ spacing2, data = apples)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -92.389 -30.577  -3.516  33.192 117.628 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  120.566      7.382  16.332  &lt; 2e-16 ***
+## spacing210    35.924     11.073   3.244 0.001659 ** 
+## spacing214    44.107     10.966   4.022 0.000121 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 43.67 on 89 degrees of freedom
+##   (28 observations deleted due to missingness)
+## Multiple R-squared:  0.1742, Adjusted R-squared:  0.1556 
+## F-statistic: 9.385 on 2 and 89 DF,  p-value: 0.0002003</code></pre>
+<pre class="r"><code>summary.lm(apples.aov)</code></pre>
+<pre><code>## 
+## Call:
+## aov(formula = yield ~ spacing2, data = apples)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -92.389 -30.577  -3.516  33.192 117.628 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  120.566      7.382  16.332  &lt; 2e-16 ***
+## spacing210    35.924     11.073   3.244 0.001659 ** 
+## spacing214    44.107     10.966   4.022 0.000121 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 43.67 on 89 degrees of freedom
+##   (28 observations deleted due to missingness)
+## Multiple R-squared:  0.1742, Adjusted R-squared:  0.1556 
+## F-statistic: 9.385 on 2 and 89 DF,  p-value: 0.0002003</code></pre>
+<pre class="r"><code>TukeyHSD(apples.aov)</code></pre>
+<pre><code>##   Tukey multiple comparisons of means
+##     95% family-wise confidence level
+## 
+## Fit: aov(formula = yield ~ spacing2, data = apples)
+## 
+## $spacing2
+##            diff        lwr      upr     p adj
+## 10-6  35.923571   9.530402 62.31674 0.0046832
+## 14-6  44.106700  17.967561 70.24584 0.0003526
+## 14-10  8.183128 -19.396838 35.76309 0.7598733</code></pre>
+<div id="anova-with-unbalanced-designs-and-1-predictor" class="section level3">
+<h3>ANOVA with unbalanced designs and &gt; 1 predictor</h3>
+<p>Balanced designs have the same number of reps per treatment. This is often not the case, and the study is unbalanced. If the study is unbalanced the way in which predictors are evaluated impacts the result. The different ways of evaluating predictors are known as Type I, Type II and Type III ANOVAs</p>
+<p>To find out more about this go to <a href="http://goanna.cs.rmit.edu.au/~fscholer/anova.php" class="uri">http://goanna.cs.rmit.edu.au/~fscholer/anova.php</a></p>
+<p>For type III tests to be correct need to change the way R codes factors</p>
+<pre class="r"><code>options(contrasts = c(&quot;contr.sum&quot;, &quot;contr.poly&quot;)) </code></pre>
+<p>This won’t change type I or II Default is: options(contrasts = c(“contr.treatment”, “contr.poly”))</p>
+<pre class="r"><code>A        = c(&quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;)
+B        = c(&quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;x&quot;, &quot;x&quot;, &quot;x&quot;)
+C        = c(&quot;l&quot;, &quot;l&quot;, &quot;m&quot;, &quot;m&quot;, &quot;l&quot;, &quot;l&quot;, &quot;m&quot;, &quot;m&quot;, &quot;l&quot;, &quot;l&quot;, &quot;l&quot;, &quot;l&quot;)
+response = c( 14,  30,  15,  35,  50,  51,  30,  32,  51,  55,  53,  55)</code></pre>
+<pre class="r"><code>model = lm(response ~ A + B + C + A:B + A:C + B:C)
+
+anova(model)              # Type I tests</code></pre>
+<pre><code>## Analysis of Variance Table
+## 
+## Response: response
+##           Df  Sum Sq Mean Sq  F value    Pr(&gt;F)    
+## A          1 1488.37 1488.37 357.6869 7.614e-06 ***
+## B          1   18.22   18.22   4.3798 0.0905765 .  
+## C          1  390.15  390.15  93.7610 0.0001995 ***
+## A:B        1  278.68  278.68  66.9722 0.0004431 ***
+## A:C        1  339.51  339.51  81.5909 0.0002778 ***
+## B:C        1    8.51    8.51   2.0444 0.2121592    
+## Residuals  5   20.81    4.16                       
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code>Anova(model, type=&quot;II&quot;)   # Type II tests using car package</code></pre>
+<pre><code>## Anova Table (Type II tests)
+## 
+## Response: response
+##            Sum Sq Df  F value    Pr(&gt;F)    
+## A         1022.01  1 245.6103 1.923e-05 ***
+## B          131.25  1  31.5421 0.0024764 ** 
+## C          278.68  1  66.9722 0.0004431 ***
+## A:B        180.01  1  43.2593 0.0012194 ** 
+## A:C        321.01  1  77.1445 0.0003174 ***
+## B:C          8.51  1   2.0444 0.2121592    
+## Residuals   20.81  5                       
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code>Anova(model, type=&quot;III&quot;)  # Type III tests using car package</code></pre>
+<pre><code>## Anova Table (Type III tests)
+## 
+## Response: response
+##             Sum Sq Df   F value    Pr(&gt;F)    
+## (Intercept) 9490.0  1 2280.6425 7.605e-08 ***
+## A            724.5  1  174.1138 4.465e-05 ***
+## B            184.5  1   44.3408 0.0011526 ** 
+## C            180.0  1   43.2593 0.0012194 ** 
+## A:B          180.0  1   43.2593 0.0012194 ** 
+## A:C          321.0  1   77.1445 0.0003174 ***
+## B:C            8.5  1    2.0444 0.2121592    
+## Residuals     20.8  5                        
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<p>Balanced design shows no difference between type I, II and III</p>
+<pre class="r"><code>A        = c(&quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;)
+B        = c(&quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;)
+C        = c(&quot;l&quot;, &quot;l&quot;, &quot;m&quot;, &quot;m&quot;, &quot;l&quot;, &quot;l&quot;, &quot;m&quot;, &quot;m&quot;, &quot;l&quot;, &quot;l&quot;, &quot;m&quot;, &quot;m&quot;)
+response = c( 14,  30,  15,  35,  50,  51,  30,  32,  51,  55,  53,  55)</code></pre>
+<pre class="r"><code>model = lm(response ~ A + B + C + A:B + A:C + B:C)
+
+anova(model)              # Type I tests</code></pre>
+<pre><code>## Analysis of Variance Table
+## 
+## Response: response
+##           Df  Sum Sq Mean Sq F value Pr(&gt;F)
+## A          1  546.75  546.75  1.9146 0.2250
+## B          1  168.75  168.75  0.5909 0.4768
+## C          1  315.38  315.38  1.1044 0.3414
+## A:B        1   70.08   70.08  0.2454 0.6413
+## A:C        1    0.38    0.38  0.0013 0.9725
+## B:C        1   15.04   15.04  0.0527 0.8276
+## Residuals  5 1427.87  285.57</code></pre>
+<pre class="r"><code>Anova(model, type=&quot;II&quot;)   # Type II tests</code></pre>
+<pre><code>## Anova Table (Type II tests)
+## 
+## Response: response
+##            Sum Sq Df F value Pr(&gt;F)
+## A          782.04  1  2.7385 0.1589
+## B          168.75  1  0.5909 0.4768
+## C          315.38  1  1.1044 0.3414
+## A:B         84.37  1  0.2955 0.6101
+## A:C          0.38  1  0.0013 0.9725
+## B:C         15.04  1  0.0527 0.8276
+## Residuals 1427.87  5</code></pre>
+<pre class="r"><code>Anova(model, type=&quot;III&quot;)  # Type III tests </code></pre>
+<pre><code>## Anova Table (Type III tests)
+## 
+## Response: response
+##              Sum Sq Df F value    Pr(&gt;F)    
+## (Intercept) 16380.4  1 57.3593 0.0006367 ***
+## A             782.0  1  2.7385 0.1588624    
+## B             168.7  1  0.5909 0.4767865    
+## C             315.4  1  1.1044 0.3414277    
+## A:B            84.4  1  0.2955 0.6100929    
+## A:C             0.4  1  0.0013 0.9724954    
+## B:C            15.0  1  0.0527 0.8275710    
+## Residuals    1427.9  5                      
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<p>The choice between the types of ANOVAs is beyond the scope of this R club and is hypothesis dependent.</p>
+</div>
+</div>
