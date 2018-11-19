@@ -1,5 +1,5 @@
 +++
-title = "Overview"
+title = "R Club tutorials and resources"
 
 date = 2018-11-10T00:00:00
 # lastmod = 2018-09-09T00:00:00
@@ -14,15 +14,20 @@ type = "docs"  # Do not modify.
   weight = 1
 +++
 
-This is a collection of R tutorials I have written for the R club that I run at Bangor.  
+This is a collection of R tutorials I have written for the R club that I run at Bangor, I've put some links to useful resources and packages below and in the sidebar there are links to the various tutorials. Hope you find this useful! 
 
 # Useful resources
+I'll start compiling useful resources I've come across here for easy access, if you can think of anything you think I should add let me know.
 
 * For those who are new to R, or returning after a long absence, the [swirl](https://swirlstats.com/) R package is really useful as it teaches you R interactively from the console.
 
 * [Cheatsheets](https://www.rstudio.com/resources/cheatsheets/) hosted by RStudio offer a handy quick reference to various packages and techniques - really useful for when you can't quite remember the name of the function you used before. Cheatsheets on non-RStudio packages are at the bottom of the page.
 
-* Tutorials from [Our Coding Club](https://ourcodingclub.github.io/tutorials/) cover a wide variety of topics and can be a great resource.
+* Tutorials from [Our Coding Club](https://ourcodingclub.github.io/tutorials/) cover a wide variety of topics, I've used them before within R club and also just to teach myself new things.
+
+* For those who are new to R Markdown the RStudio team have released a [set of lessons](https://rmarkdown.rstudio.com/lesson-1.html) on how to use it which are a good introduction and give an idea of its capabilities (which are much greater than I realised, might have to try and do a few of these soon).
+
+* This website was created using the [blogdown package](https://github.com/rstudio/blogdown) so I have to mention the [associated online book](https://bookdown.org/yihui/blogdown/) that guided me through this rather interesting journey.
 
 
 # Featured packages
