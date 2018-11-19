@@ -3,7 +3,7 @@ title: Linear modelling
 author: Fiona Seaton
 date: 2018-03-28
 
-draft: true
+draft: false
 toc: false
 type: docs
 
@@ -15,10 +15,10 @@ menu:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
-This tutorial is an introduction to simple linear regression in R, I've split it into two sections: first using lm to fit responses to numerical predictors then the use of ANOVAs with categorical predictors.
+This tutorial is an introduction to simple linear regression in R, I've split it into two parts: this part is on modelling with numeric predictors.
 
 First we're going to load in all the packages we'll be using in this analysis.
 
@@ -51,12 +51,11 @@ print(dfSummary(Fert, style = 'grid', graph.magnif = 0.85), method = "render", o
 The different crops are all probably quite different in their responses, so we're going to look at the summary statistics by group (again using the summarytools package, see the summary statistics tutorial for more methods).
 ```{r Summary fert by crop}
 # First save the results
-Fert_stats_by_crop <- by(data = Fert, 
-                          INDICES = Fert$crop, 
-                          FUN = descr, stats = c("mean", "sd", "min", "med", "max"), 
-                          transpose = TRUE, style = "rmarkdown", omit.headings = TRUE)
-# then view
-view(Fert_stats_by_crop, method = "pander")
+by(data = Fert, 
+   INDICES = Fert$crop, 
+   FUN = descr, stats = c("mean", "sd", "min", "med", "max"), 
+   transpose = TRUE, style = "rmarkdown", omit.headings = TRUE)
+
 ```
 
 We're going to treat the fertiliser treatments as numeric as there are sufficient different treatments to fit linear regression, and for ease of interpretation.
@@ -130,6 +129,7 @@ qqp(cloverp.lm2)
 ```
 
 
+### Two predictors
 Now this experiment involved adding the two fertilisers together and separately so we should be taking both treatments into account and fitting models with two predictors. First we can use an asterisk to estimate if there's some kind of interaction effect between the predictors.
 
 ```{r two predictors}
@@ -148,6 +148,20 @@ qqp(cloverpk.lm2)
 ```
 
 
+This model looks fairly similar in R^2^ to the previous, however it is better practice to compare models using an information criterion. Information criterions look at how much variation is explained by the model and then penalise for model complexity. Therefore if two models explain the same amount of variation then the simpler model will be preferred. One of the most common ICs is AIC (Aikake's An Information Criterion). This is present in base R, but we're going to use a version that works better with small sample sizes: AICc. We'll use the AICcmodavg package to do this.
+
+```{r}
+AICc(cloverpk.lm)  
+AICc(cloverpk.lm2) 
+AICc(cloverp.lm)
+AICc(cloverk.lm)
+
+```
+
+A commonly used rule of thumb is that if the AIC(c)'s are within 2 points of each other the models are essentially equivalent. We have a difference of 0.4 between the two models with both P and K as predictors so these are essentially equivalent. The model with P only is noticeably worse, and K doesn't do well at all.
+
+
+#### One more diagnostic check for models with multiple predictors!
 If the predictors are highly correlated then the model struggles to estimate impact and estimated error of coefficients will be high. VIF estimates the influence of multicollinearity on estimated variance of predictors.
 
 ```{r vif}
@@ -158,135 +172,4 @@ vif(cloverpk.lm2)
 For more on vif see http://www.statisticshowto.com/variance-inflation-factor/
 Rough rules: VIF=1 not correlated; 1<VIF<5 moderately correlated; VIF>5 highly correlated. vif here is low, as we'd expect with a correlation coefficient of 0 between P and K
 
-model comparison using AICc
-AICc is the small-sample correction for AIC
 
-```{r}
-AICc(cloverpk.lm)  
-AICc(cloverpk.lm2) 
-
-```
-
-Models are essentially equivalent
-
-## Categorical predictors
-
-```{r examine apples}
-apples <- agridat::archbold.apple
-head(apples)
-str(apples)
-summary(apples)
-multi.hist(apples[,c(2,3,4,7,8)]) # only on numeric/integer variables
-pairs.panels(apples[,c(2,3,4,7,8)], ellipses=F)
-
-```
-
-
-examine data using graphs
-impact of spacing - do apples that are closer together have lower yield? There are only 3 spacing values so convert to category
-
-```{r apples spacing}
-apples$spacing2 <- as.factor(apples$spacing)
-
-ggplot(apples, aes(spacing2, yield)) +
-    geom_boxplot() +
-    labs(x = "Spacing (m)", y = "Yield (kg)")
-
-```
-
-
-Within R lm and aov give the same result with a single categorical predictor only difference is output of summary functions, which can be changed using summary.lm and summary.aov
-
-now run linear model with lm to see if difference is statistically significant
-```{r apples lm}
-apples.m <- lm(yield ~ spacing2, data = apples)
-summary(apples.m)
-
-```
-
-output gives the difference between the 10m spacing and the 6m spacing, and the 14m spacing and the 6m spacing. The 6m spacing is given by the intercept
-
-use plots to examine residuals. 
-```{r apples diagnostics}
-par(mfrow=c(2,2));plot(apples.m);par(mfrow=c(1,1)) 
-qqp(apples.m)
-
-```
-
-
-If wish to do a Tukey's HSD post-hoc test then need to fit model with aov rather than lm
-```{r Tukey HSD}
-apples.aov <- aov(yield ~ spacing2, data = apples)
-summary(apples.aov)
-summary(apples.m) # compare to lm output - different format but same numbers
-summary.lm(apples.aov)
-
-TukeyHSD(apples.aov)
-
-```
-
-
-
-
-
-### ANOVA with unbalanced designs and > 1 predictor
-
-Balanced designs have the same number of reps per treatment. This is often not the case, and the study is unbalanced. If the study is unbalanced the way in which predictors are evaluated impacts the result. The different ways of evaluating predictors are known as Type I, Type II and Type III ANOVAs
-
-To find out more about this go to http://goanna.cs.rmit.edu.au/~fscholer/anova.php
-
-For type III tests to be correct need to change the way R codes factors
-
-```{r options factors}
-options(contrasts = c("contr.sum", "contr.poly")) 
-
-```
-
-This won't change type I or II
-Default is: options(contrasts = c("contr.treatment", "contr.poly"))
-
-```{r fake data}
-A        = c("a", "a", "a", "a", "b", "b", "b", "b", "b", "b", "b", "b")
-B        = c("x", "y", "x", "y", "x", "y", "x", "y", "x", "x", "x", "x")
-C        = c("l", "l", "m", "m", "l", "l", "m", "m", "l", "l", "l", "l")
-response = c( 14,  30,  15,  35,  50,  51,  30,  32,  51,  55,  53,  55)
-
-```
-
-```{r model}
-model = lm(response ~ A + B + C + A:B + A:C + B:C)
-
-anova(model)              # Type I tests
-
-Anova(model, type="II")   # Type II tests using car package
-
-Anova(model, type="III")  # Type III tests using car package
-
-```
-
-
-
-Balanced design shows no difference between type I, II and III
-
-```{r fake unbalanced data}
-A        = c("a", "a", "a", "a", "a", "a", "b", "b", "b", "b", "b", "b")
-B        = c("x", "y", "x", "y", "x", "y", "x", "y", "x", "y", "x", "y")
-C        = c("l", "l", "m", "m", "l", "l", "m", "m", "l", "l", "m", "m")
-response = c( 14,  30,  15,  35,  50,  51,  30,  32,  51,  55,  53,  55)
-
-```
-
-```{r}
-model = lm(response ~ A + B + C + A:B + A:C + B:C)
-
-anova(model)              # Type I tests
-
-Anova(model, type="II")   # Type II tests
-
-Anova(model, type="III")  # Type III tests 
-
-```
-
-
-
-The choice between the types of ANOVAs is beyond the scope of this R club and is hypothesis dependent.
