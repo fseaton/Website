@@ -4,8 +4,11 @@ author: Fiona Seaton
 date: 2018-10-22
 
 draft: false
-toc: false
 type: docs
+
+output:
+  blogdown::html_page:
+    toc: true
 
 linktitle: Loops and apply
 menu:
@@ -16,6 +19,21 @@ menu:
 ---
 
 
+<div id="TOC">
+<ul>
+<li><a href="#functions">Functions</a></li>
+<li><a href="#doing-actions-repeatedly">Doing actions repeatedly</a><ul>
+<li><a href="#the-apply-family-of-functions">The apply family of functions</a><ul>
+<li><a href="#replicate">replicate</a></li>
+</ul></li>
+<li><a href="#apply">apply</a><ul>
+<li><a href="#applying-a-function-to-a-list">Applying a function to a list</a></li>
+</ul></li>
+<li><a href="#for-loops">for loops</a></li>
+</ul></li>
+<li><a href="#parallelising-code">Parallelising code</a></li>
+</ul>
+</div>
 
 <p>So today we’re talking about all the things you do in R to make lots of things happen at once and hopefully make life easier for yourself.</p>
 <div id="functions" class="section level1">
@@ -178,13 +196,13 @@ for(i in seq(1,nrow(output))){
   output[i,] &lt;- rnorm(ncol(output))
 }})</code></pre>
 <pre><code>##    user  system elapsed 
-##    0.14    0.05    0.19</code></pre>
+##    0.06    0.22    0.28</code></pre>
 <pre class="r"><code>system.time({
   output &lt;- replicate(1000, rnorm(50))
 }
 )</code></pre>
 <pre><code>##    user  system elapsed 
-##    0.01    0.00    0.02</code></pre>
+##    0.01    0.00    0.01</code></pre>
 </div>
 </div>
 <div id="parallelising-code" class="section level1">
@@ -193,7 +211,7 @@ for(i in seq(1,nrow(output))){
 <pre class="r"><code>library(parallel)
 
 detectCores()</code></pre>
-<pre><code>## [1] 4</code></pre>
+<pre><code>## [1] 8</code></pre>
 <p>First set up the cluster</p>
 <pre class="r"><code>ncores &lt;- detectCores() - 1
 cl &lt;- makeCluster(ncores)</code></pre>
@@ -223,17 +241,17 @@ cl &lt;- makeCluster(ncores)</code></pre>
 clusterSetRNGStream(cl, 687)
 parSapply(cl, 1:5, 
           function(i,...) { x &lt;- runif(10,0,1) } )</code></pre>
-<pre><code>##             [,1]       [,2]       [,3]       [,4]       [,5]
-##  [1,] 0.14429965 0.53537990 0.21331866 0.02055001 0.45245664
-##  [2,] 0.18525127 0.80927393 0.32476419 0.16242775 0.27196072
-##  [3,] 0.21905267 0.44933521 0.99324358 0.45238802 0.02077084
-##  [4,] 0.94177406 0.02354132 0.59801448 0.04279694 0.89264013
-##  [5,] 0.66734628 0.76878218 0.86933389 0.35388948 0.58480011
-##  [6,] 0.93628746 0.43382590 0.08276446 0.21632516 0.69683966
-##  [7,] 0.85823582 0.56782455 0.83894103 0.39821555 0.90788627
-##  [8,] 0.30548130 0.93797098 0.94715075 0.32625243 0.71764011
-##  [9,] 0.30267136 0.19201971 0.98897235 0.16515329 0.48914321
-## [10,] 0.04269592 0.88008062 0.75025385 0.56268346 0.22694372</code></pre>
+<pre><code>##             [,1]       [,2]       [,3]      [,4]       [,5]
+##  [1,] 0.14429965 0.21331866 0.40571604 0.2472281 0.40165129
+##  [2,] 0.18525127 0.32476419 0.02335608 0.8401962 0.55345194
+##  [3,] 0.21905267 0.99324358 0.06188443 0.3960855 0.08258860
+##  [4,] 0.94177406 0.59801448 0.49131572 0.8229546 0.37435432
+##  [5,] 0.66734628 0.86933389 0.87772390 0.7528548 0.82314307
+##  [6,] 0.93628746 0.08276446 0.45386770 0.1250695 0.31459038
+##  [7,] 0.85823582 0.83894103 0.17876227 0.8229317 0.70996727
+##  [8,] 0.30548130 0.94715075 0.07310863 0.7606710 0.02427265
+##  [9,] 0.30267136 0.98897235 0.69246723 0.8377303 0.20682876
+## [10,] 0.04269592 0.75025385 0.70704662 0.7732005 0.72787253</code></pre>
 <pre class="r"><code>stopCluster(cl)</code></pre>
 <p>To get around the fact that parSapply wants to use the list of 1 to 5 given to it as an argument we write the function down with an argument i that is not used later.</p>
 <p>So there’s a few examples of ways to speed up your code. I admit to having mixed feelings about speeding up code, as slow code is often a good excuse for a cup of tea. However some code is just ridiculously slow (especially nested for loops, watch out for those), and really I can get a cup of tea when I feel like one rather than waiting for an excuse.</p>
