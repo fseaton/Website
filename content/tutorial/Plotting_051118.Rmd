@@ -4,8 +4,11 @@ author: Fiona Seaton
 date: 2018-11-05
 
 draft: false
-toc: false
 type: docs
+
+output:
+  blogdown::html_page:
+    toc: true
 
 linktitle: Plotting
 menu:
@@ -18,7 +21,6 @@ menu:
 knitr::opts_chunk$set(message = FALSE, warning = FALSE)
 ```
 
-## ggplot2
 
 ```{r packages}
 library(ggplot2)

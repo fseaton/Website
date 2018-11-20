@@ -4,8 +4,11 @@ author: Fiona Seaton
 date: 2018-10-09
 
 draft: false
-toc: false
 type: docs
+
+output:
+  blogdown::html_page:
+    toc: true
 
 linktitle: Summary statistics
 menu:
