@@ -1,0 +1,282 @@
+---
+title: Working with Characters
+author: Fiona Seaton
+date: 2018-11-20
+
+draft: true
+type: docs
+
+output:
+  blogdown::html_page:
+    toc: true
+
+linktitle: Characters
+menu:
+  tutorial:
+    parent: R club
+    weight: 6
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+Strings are the data type in computing that are used to store text, in R strings are stored as the character type. Base functions for reading data into R will convert strings into factors, these can be switched back using as.character or the behaviour of the function can be changed by setting stringsAsFactors = FALSE.
+
+```{r intro}
+vec <- c("ABCD","POL")
+typeof(vec)
+```
+
+
+There's two main packages that deal with strings in R: stringr and stringi. The stringr package is part of the tidyverse and has a lot of documentation and cheatsheets (see the [online resources](https://stringr.tidyverse.org/)). However it's actually an interface to stringi, which has a lot more functionality but the online resources aren't as user-friendly (see the [online manual](http://www.gagolewski.com/software/stringi/manual/)). I haven't used either particularly much but I have found the stringr documentation a lot easier to dip in and out of for quick solutions to problems. The following code is mainly from base R as it's what I'm more comfortable with.
+
+
+# Searching for the words
+In base R there are a few functions which can search through vectors of strings and tell you if the pattern you are searching for is present.
+The grep function tells you where in the vector there is a match, and can also give you the values in the vector where there is a match.
+
+```{r grep}
+vec <- c("Bacteria","Mycorrhizal fungi","Pathogenic bacteria", "Saprophytic fungi","Unidentified","Extremophilic bacteria")
+
+grep("fungi", vec, value = FALSE) # ask it which elements of vec have "fungi" within them
+grep("fungi", vec, value = TRUE) # get it to return the elements of vec that have "fungi" within them
+
+grep("bacteria", vec, value = TRUE) # This doesn't return the first element of vec as Bacteria has a capital there
+grep("bacteria", vec, value = TRUE, ignore.case = TRUE) # You can tell grep to ignore the case of the input pattern
+```
+
+The related grepl function will return a logical vector the same length of the input telling you whether there is a match at each point.
+
+```{r grepl}
+grepl("fungi", vec)
+
+grepl("bacteria", vec, ignore.case = TRUE)
+```
+
+Both grep and grepl can be very useful for subsetting:
+
+```{r grep subsetting}
+vec[grep("fungi", vec)]
+
+vec[grepl("bacteria", vec, ignore.case = TRUE)]
+```
+
+Base R also has some functions for specific usages such as startsWith and endsWith which are faster for checking if strings start or end with a pattern. Note that the arguments are reversed, you give it the thing you want to search then the pattern you want to search for:
+
+```{r startsWith endsWith}
+endsWith(vec, "fungi")
+
+```
+
+
+## Regular Expressions
+We're going to start with a description of regular expressions, because an understanding of these really makes searching character strings a lot more powerful. I highly recommend the cheatsheet on regular expressions written by Ian Kopacka (I'll attach it to the R club email).
+
+So what are regular expressions? They are patterns used to match character combinations. If you've ever searched on a search engine using * to represent multiple potential options then you've used a regular expression. There's a few special symbols that can be used to represent different things, and I'll list the ones I use the most (see the cheatsheet for a more comprehensive list):
+
+```{r regex table, echo = FALSE, message = FALSE, warnings=FALSE, results='asis'}
+reg_table <- data.frame(Character = c(".","|","[...]","[a-z]","^","$","\\*"),
+                        Meaning = c("Any character","Or","List permitted characters","Specify range of permitted characters","Start of string","End of string","Matches at least once"))
+knitr::kable(reg_table)
+```
+
+You can use two backslashes to use the actual character of a special symbol and not it's special meaning - for instance in the code above I used \\* to show an asterisk in the table rather than a bulletpoint (which is a formatting rule for markdown).
+
+Examples:
+```{r searching regex}
+vec <- c("Bacteria","Mycorrhizal fungi","Pathogenic bacteria", "Saprophytic fungi","Unidentified","Extremophilic bacteria",
+         "Ectomycorrhizal fungi", "Bacterial symbiont", "Bacteria unidentified 0154", "Unidentified fungal strain T86")
+
+# match to either fungi or bacteria
+grep("fungi|bacteria", vec, ignore.case = TRUE, value = TRUE)
+
+# match to anything that starts with Unidentified
+grep("^Unidentified", vec, value = TRUE)
+
+
+```
+
+```{r searching regex 2}
+vec <- c("LL57 2UW","E4 6GH","LL57 1LE","W8 3PL","LL57 1AH", "LL57 1AY", "LL57 1DD","LL57 2AY", "LL59 5AF","LL59 5AX", "W1 1JE", "EH8 6YX")
+
+# which postcodes start with LL57?
+grep("^LL57", vec, value = TRUE) 
+
+# which postcodes start with E or W?
+grep("^[EW]", vec, value = TRUE)
+
+# which postcodes have a 1 after the space? Space is represented by \\s
+grep("\\s1", vec, value = TRUE)
+
+# which postcodes start with two letters? The {} notation shows the previous bit will be repeated the number of times within the brackets
+grep("^[A-Z]{2}", vec, value = TRUE)
+
+# which postcodes have the format letter letter number number space number letter letter?
+grep("[A-Z]{2}[0-9]{2}\\s[0-9][A-Z]{2}", vec, value = TRUE) 
+```
+
+The equivalent functions to grep and grepl in stringr are str_which and str_detect respectively. The stringr package uses notation similar to the tidyverse such that the first argument is the string you want to search, and the second is the pattern you are searching for.
+
+```{r stringr search}
+library(stringr)
+str_detect(vec, "\\s1") #similar to grepl
+
+str_which(vec, "\\s1") # similar to grep with value = FALSE
+
+str_subset(vec, "\\s1") # similar to grep with value = TRUE
+```
+
+
+
+# Subsetting and splitting strings
+To subset and split strings there are multiple functions in base R depending on what specifically you want to do. There are also functions in stringr and stringi (I'm not going to go into these, I'll attach the stringr cheatsheet).
+
+```{r substring}
+# return the first two digits of the postcodes
+substring(vec, 1, 2)
+
+```
+
+```{r strsplit}
+# split the postcodes on the space
+strsplit(vec, " ")
+
+```
+
+The output of strsplit can be a bit of a pain, here's one way to return only the first element of the split for each postcode:
+
+```{r sapply strsplit}
+sapply(strsplit(vec, " "), "[",1)
+```
+
+The "["" indicates you want sapply to subset the list, and the 1 indicates that you want the first element of each subsetting
+
+The functions regexpr and gregexpr identify where in the string the match is, and are very useful for extracting data with the regmatches function.
+
+```{r regexpr}
+x <- c("Phone: 0124667786", "Call: 07864354419", "+44786431343", "Deiniol Road")
+m <- regexpr("[0-9]+", x, perl=TRUE)
+regmatches(x, m)
+```
+
+You can also extract the non-matches using regmatches and setting invert to TRUE
+```{r regexpr}
+regmatches(x, m, invert = TRUE)
+```
+
+## Joining strings
+To do the opposite of strsplit you can join strings together with paste.
+
+```{r paste}
+x <- c("ab","cd","ef","gh")
+y <- c("up","down","up","down")
+
+paste(x,y, sep = "_") #just paste together multiple strings and specify the separator
+paste(x,"th", sep = "-")
+
+paste0(x,y) # paste0 is for the case where you don't want anything between the objects
+```
+
+
+
+## Splitting columns in dataframes
+While you can use strsplit to split a column in a dataframe it is a lot easier to use the separate function in tidyr
+
+```{r separate}
+library(tidyr)
+df <- data.frame(ID = c("PL1_2017_MAY", "PL2_2017_MAY", "PL1_2017_JUNE", "PL2_2017_JUNE"),
+                 Value = rnorm(4))
+
+df2 <- separate(df, ID, into = c("Plot","Year","Month"), sep = "_")
+df2
+
+```
+
+You can specify convert = TRUE to convert the output into other formats, e.g. it would change Year into a numeric variable. For the equivalent of paste for combining columns you can use the unite function.
+
+```{r unite}
+unite(df2, ID, Plot, Year, Month)
+```
+
+
+The tidyr package also has a function called extract which can remove subsections of the specified column based on regular expressions.
+
+```{r extract}
+tidyr::extract(df, ID, "Month", regex = "([[A-Z]]+$)")
+
+```
+You have to use round brackets around your regex to define the grouping variable.
+
+
+# plotmath
+
+This is a quick section on how to get weird symbols onto your plot labels, mainly because I want to write the rules down somewhere before I forget. R has built in functionality to put all sorts of weird mathematical expressions on plots, see the help page for plotmath for a long list of things that are possible. I'm using expression to create the labels because it seems to be the simplest option I've found so far.
+
+
+~ means separate with a space
+* means put next to each other with no space
+^ means the next bit put in superscript
+[] means put the bit in brackets in subscript
+
+
+```{r plot super and sub}
+plot(cars, xlab = expression("Speed (hr"^-1*")"), ylab = expression(bold(Distance[30])~"(ft)"))
+```
+
+```{r plotmath 2}
+par(mar = c(5,5,4,2) + 0.1)
+plot(cars, xlab = expression(pi~and~tilde(20)*degree), ylab = expression(infinity%down%N[2]*O-N))
+```
+
+```{r plotmath 3}
+par(mar = c(5,5,4,2) + 0.1)
+plot(cars, 
+     ylab = expression(Delta^13*C-CO[2]~"(\u2030)"),  
+     xlab = expression(italic(A[380])~"("*mu*"mol"~CO[2]~m^-2~s^-1*")"))
+```
+
+```{r ggplot}
+library(ggplot2)
+dat <- data.frame(X = gl(7,1),
+                  Y = runif(7))
+
+ggplot(dat, aes(x = X, y =Y)) + geom_bar(stat = "identity") +
+  geom_text(aes(y = Y + 0.1),
+            label = c(expression(alpha), 
+                      expression(beta), expression(gamma), 
+                      expression(delta), expression(epsilon), 
+                      expression(zeta), expression(eta))) +
+  labs(x = expression(infinity %~~% frac(Upsilon1, widetilde(alpha*beta))),
+       y = expression(Omega*bolditalic("(\u2020)")))
+```
+
+```{r emojifont}
+library(emojifont)
+load.emojifont("EmojiOne.ttf")
+
+foo <- structure(list(name_emoji = c("closed book", "confused face", 
+                                     "dizzy", "face with tears of joy", "flexed biceps", "light bulb"), 
+                      n = c(1L, 7L, 20L, 1L, 1L, 1L), 
+                      emoji = c("\U0001f4d5", "\U0001f615", "\U0001f4ab", "\U0001f602", "\U0001f4aa", "\U0001f4a1")), 
+                 .Names = c("name_emoji", "n", "emoji"), row.names = c(NA, -6L), class = c("tbl_df", "tbl", 
+                                                                                                                                                                   "data.frame"))
+ggplot(foo, aes(name_emoji, n, label = emoji)) + 
+  geom_bar(stat = "identity") +
+  geom_text(family = "EmojiOne", size = 6, vjust = -.5) +
+  scale_x_discrete(breaks = foo$name_emoji, labels = foo$emoji) +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())
+```
+
+```{r phylomoji}
+library(ggtree)
+tree_text <- "(((((cow, (whale, dolphin)), (pig2, boar)), camel), fish), seedling);"
+x <- read.tree(text=tree_text)
+ggtree(x, linetype="dashed", color='firebrick') +
+  xlim(NA, 7) + ylim(NA, 8.5) +
+  geom_tiplab(aes(color=label), parse='emoji', size=14, vjust=0.25) +
+  labs(caption="powered by ggtree + emojifont")
+```
+
