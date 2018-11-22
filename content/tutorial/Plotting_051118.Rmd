@@ -10,10 +10,10 @@ output:
   blogdown::html_page:
     toc: true
 
-linktitle: Plotting
+linktitle: ggplot2 and extensions
 menu:
   tutorial:
-    parent: R club
+    parent: Plotting
     weight: 3
 ---
 

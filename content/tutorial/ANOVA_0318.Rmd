@@ -10,7 +10,7 @@ type: docs
 linktitle: ANOVAs
 menu:
   tutorial:
-    parent: R club
+    parent: Modelling
     weight: 6
 ---
 

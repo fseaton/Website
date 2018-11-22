@@ -10,7 +10,7 @@ type: docs
 linktitle: Linear modelling
 menu:
   tutorial:
-    parent: R club
+    parent: Modelling
     weight: 5
 ---
 
