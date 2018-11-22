@@ -3,12 +3,8 @@ title: Plotmath - how to get scientific notation on plots
 author: Fiona Seaton
 date: 2018-11-20
 
-draft: true
+draft: false
 type: docs
-
-output:
-  blogdown::html_page:
-    toc: true
 
 linktitle: Plotmath
 menu:
@@ -18,11 +14,6 @@ menu:
 ---
 
 
-<div id="TOC">
-<ul>
-<li><a href="#emojis-because-why-not">emojis because why not</a></li>
-</ul>
-</div>
 
 <p>This is a quick section on how to get weird symbols onto your plot labels, mainly because I want to write the rules down somewhere before I forget. R has built in functionality to put all sorts of weird mathematical expressions on plots, see the help page for plotmath for a long list of things that are possible. I’m using expression to create the labels because it seems to be the simplest option I’ve found so far.</p>
 <table>
@@ -56,11 +47,13 @@ menu:
 <pre class="r"><code>par(mar = c(5,5,4,2) + 0.1)
 plot(cars, xlab = expression(pi~and~tilde(20)*degree), ylab = expression(infinity%down%N[2]*O-N))</code></pre>
 <p><img src="/tutorial/Plotmath_files/figure-html/plotmath%202-1.png" width="672" /></p>
+<p>You can also reference unicode symbols directly, but not all are supported. I’m using “030” here to show the per mille symbol.</p>
 <pre class="r"><code>par(mar = c(5,5,4,2) + 0.1)
 plot(cars, 
      ylab = expression(Delta^13*C-CO[2]~&quot;(\u2030)&quot;),  
      xlab = expression(italic(A[380])~&quot;(&quot;*mu*&quot;mol&quot;~CO[2]~m^-2~s^-1*&quot;)&quot;))</code></pre>
 <p><img src="/tutorial/Plotmath_files/figure-html/plotmath%203-1.png" width="672" /></p>
+<p>All of the above are possible in ggplot2, as shown below. You can also plot symbols directly onto the plot using expression within the labels value in geom_text.</p>
 <pre class="r"><code>library(ggplot2)
 dat &lt;- data.frame(X = gl(7,1),
                   Y = runif(7))
@@ -76,31 +69,34 @@ ggplot(dat, aes(x = X, y =Y)) + geom_bar(stat = &quot;identity&quot;) +
 <pre><code>## Warning in is.na(x): is.na() applied to non-(list or vector) of type
 ## &#39;expression&#39;</code></pre>
 <p><img src="/tutorial/Plotmath_files/figure-html/ggplot-1.png" width="672" /></p>
-<div id="emojis-because-why-not" class="section level2">
-<h2>emojis because why not</h2>
-<p>Also here is how to get emoji onto plots using the emojifont package, because I find this far too amusing.</p>
+<div id="emojis-because-why-not" class="section level3">
+<h3>emojis because why not</h3>
+<p>Also here is how to get emoji onto plots using the emojifont package, because I find this far too amusing. These examples are lifted directly from <a href="https://stackoverflow.com/a/47763512">this comment on stack overflow</a> and Guangchuang Yu’s <a href="https://guangchuangyu.github.io/software/ggtree/vignettes/phylomoji.html">vignette on phylomoji</a>.</p>
 <pre class="r"><code>library(emojifont)
-load.emojifont(&quot;EmojiOne.ttf&quot;)
 
-foo &lt;- structure(list(name_emoji = c(&quot;closed book&quot;, &quot;confused face&quot;, 
-                                     &quot;dizzy&quot;, &quot;face with tears of joy&quot;, &quot;flexed biceps&quot;, &quot;light bulb&quot;), 
+# data setup
+df &lt;- data.frame(name_emoji = c(&quot;closed book&quot;, &quot;confused face&quot;,&quot;dizzy&quot;, 
+                                &quot;face with tears of joy&quot;, &quot;flexed biceps&quot;, &quot;light bulb&quot;), 
                       n = c(1L, 7L, 20L, 1L, 1L, 1L), 
-                      emoji = c(&quot;\U0001f4d5&quot;, &quot;\U0001f615&quot;, &quot;\U0001f4ab&quot;, &quot;\U0001f602&quot;, &quot;\U0001f4aa&quot;, &quot;\U0001f4a1&quot;)), 
-                 .Names = c(&quot;name_emoji&quot;, &quot;n&quot;, &quot;emoji&quot;), row.names = c(NA, -6L), class = c(&quot;tbl_df&quot;, &quot;tbl&quot;, 
-                                                                                                                                                                   &quot;data.frame&quot;))
-ggplot(foo, aes(name_emoji, n, label = emoji)) + 
+                      emoji = c(&quot;\U0001f4d5&quot;, &quot;\U0001f615&quot;, &quot;\U0001f4ab&quot;, 
+                                &quot;\U0001f602&quot;, &quot;\U0001f4aa&quot;, &quot;\U0001f4a1&quot;))
+
+ggplot(df, aes(name_emoji, n, label = emoji)) + 
   geom_bar(stat = &quot;identity&quot;) +
   geom_text(family = &quot;EmojiOne&quot;, size = 6, vjust = -.5) +
-  scale_x_discrete(breaks = foo$name_emoji, labels = foo$emoji) +
+  scale_y_continuous(limits = c(0,25)) +
   theme(axis.title.x=element_blank(),
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank())</code></pre>
 <p><img src="/tutorial/Plotmath_files/figure-html/emojifont-1.png" width="672" /></p>
 <pre class="r"><code>library(ggtree)</code></pre>
-<pre><code>## ggtree v1.12.7  For help: https://guangchuangyu.github.io/software/ggtree
+<pre><code>## ggtree v1.14.3  For help: https://guangchuangyu.github.io/software/ggtree
 ## 
-## If you use ggtree in published research, please cite:
-## Guangchuang Yu, David Smith, Huachen Zhu, Yi Guan, Tommy Tsan-Yuk Lam. ggtree: an R package for visualization and annotation of phylogenetic trees with their covariates and other associated data. Methods in Ecology and Evolution 2017, 8(1):28-36, doi:10.1111/2041-210X.12628</code></pre>
+## If you use ggtree in published research, please cite the most appropriate paper(s):
+## 
+## - Guangchuang Yu, David Smith, Huachen Zhu, Yi Guan, Tommy Tsan-Yuk Lam. ggtree: an R package for visualization and annotation of phylogenetic trees with their covariates and other associated data. Methods in Ecology and Evolution 2017, 8(1):28-36, doi:10.1111/2041-210X.12628
+## 
+## - Guangchuang Yu, Tommy Tsan-Yuk Lam, Huachen Zhu, Yi Guan. Two methods for mapping and visualizing associated data on phylogeny using ggtree. Molecular Biology and Evolution 2018, accepted. doi: 10.1093/molbev/msy194</code></pre>
 <pre class="r"><code>tree_text &lt;- &quot;(((((cow, (whale, dolphin)), (pig2, boar)), camel), fish), seedling);&quot;
 x &lt;- read.tree(text=tree_text)
 ggtree(x, linetype=&quot;dashed&quot;, color=&#39;firebrick&#39;) +
