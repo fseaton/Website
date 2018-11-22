@@ -1,0 +1,326 @@
+---
+title: Working with Characters
+author: Fiona Seaton
+date: 2018-11-20
+
+draft: true
+type: docs
+
+output:
+  blogdown::html_page:
+    toc: true
+
+linktitle: Characters
+menu:
+  tutorial:
+    parent: R club
+    weight: 6
+---
+
+
+<div id="TOC">
+<ul>
+<li><a href="#searching-for-the-words">Searching for the words</a><ul>
+<li><a href="#regular-expressions">Regular Expressions</a></li>
+</ul></li>
+<li><a href="#subsetting-and-splitting-strings">Subsetting and splitting strings</a><ul>
+<li><a href="#joining-strings">Joining strings</a></li>
+<li><a href="#splitting-columns-in-dataframes">Splitting columns in dataframes</a></li>
+</ul></li>
+<li><a href="#plotmath">plotmath</a></li>
+</ul>
+</div>
+
+<p>Strings are the data type in computing that are used to store text, in R strings are stored as the character type. Base functions for reading data into R will convert strings into factors, these can be switched back using as.character or the behaviour of the function can be changed by setting stringsAsFactors = FALSE.</p>
+<pre class="r"><code>vec &lt;- c(&quot;ABCD&quot;,&quot;POL&quot;)
+typeof(vec)</code></pre>
+<pre><code>## [1] &quot;character&quot;</code></pre>
+<p>There’s two main packages that deal with strings in R: stringr and stringi. The stringr package is part of the tidyverse and has a lot of documentation and cheatsheets (see the <a href="https://stringr.tidyverse.org/">online resources</a>). However it’s actually an interface to stringi, which has a lot more functionality but the online resources aren’t as user-friendly (see the <a href="http://www.gagolewski.com/software/stringi/manual/">online manual</a>). I haven’t used either particularly much but I have found the stringr documentation a lot easier to dip in and out of for quick solutions to problems. The following code is mainly from base R as it’s what I’m more comfortable with.</p>
+<div id="searching-for-the-words" class="section level1">
+<h1>Searching for the words</h1>
+<p>In base R there are a few functions which can search through vectors of strings and tell you if the pattern you are searching for is present. The grep function tells you where in the vector there is a match, and can also give you the values in the vector where there is a match.</p>
+<pre class="r"><code>vec &lt;- c(&quot;Bacteria&quot;,&quot;Mycorrhizal fungi&quot;,&quot;Pathogenic bacteria&quot;, &quot;Saprophytic fungi&quot;,&quot;Unidentified&quot;,&quot;Extremophilic bacteria&quot;)
+
+grep(&quot;fungi&quot;, vec, value = FALSE) # ask it which elements of vec have &quot;fungi&quot; within them</code></pre>
+<pre><code>## [1] 2 4</code></pre>
+<pre class="r"><code>grep(&quot;fungi&quot;, vec, value = TRUE) # get it to return the elements of vec that have &quot;fungi&quot; within them</code></pre>
+<pre><code>## [1] &quot;Mycorrhizal fungi&quot; &quot;Saprophytic fungi&quot;</code></pre>
+<pre class="r"><code>grep(&quot;bacteria&quot;, vec, value = TRUE) # This doesn&#39;t return the first element of vec as Bacteria has a capital there</code></pre>
+<pre><code>## [1] &quot;Pathogenic bacteria&quot;    &quot;Extremophilic bacteria&quot;</code></pre>
+<pre class="r"><code>grep(&quot;bacteria&quot;, vec, value = TRUE, ignore.case = TRUE) # You can tell grep to ignore the case of the input pattern</code></pre>
+<pre><code>## [1] &quot;Bacteria&quot;               &quot;Pathogenic bacteria&quot;   
+## [3] &quot;Extremophilic bacteria&quot;</code></pre>
+<p>The related grepl function will return a logical vector the same length of the input telling you whether there is a match at each point.</p>
+<pre class="r"><code>grepl(&quot;fungi&quot;, vec)</code></pre>
+<pre><code>## [1] FALSE  TRUE FALSE  TRUE FALSE FALSE</code></pre>
+<pre class="r"><code>grepl(&quot;bacteria&quot;, vec, ignore.case = TRUE)</code></pre>
+<pre><code>## [1]  TRUE FALSE  TRUE FALSE FALSE  TRUE</code></pre>
+<p>Both grep and grepl can be very useful for subsetting:</p>
+<pre class="r"><code>vec[grep(&quot;fungi&quot;, vec)]</code></pre>
+<pre><code>## [1] &quot;Mycorrhizal fungi&quot; &quot;Saprophytic fungi&quot;</code></pre>
+<pre class="r"><code>vec[grepl(&quot;bacteria&quot;, vec, ignore.case = TRUE)]</code></pre>
+<pre><code>## [1] &quot;Bacteria&quot;               &quot;Pathogenic bacteria&quot;   
+## [3] &quot;Extremophilic bacteria&quot;</code></pre>
+<p>Base R also has some functions for specific usages such as startsWith and endsWith which are faster for checking if strings start or end with a pattern. Note that the arguments are reversed, you give it the thing you want to search then the pattern you want to search for:</p>
+<pre class="r"><code>endsWith(vec, &quot;fungi&quot;)</code></pre>
+<pre><code>## [1] FALSE  TRUE FALSE  TRUE FALSE FALSE</code></pre>
+<div id="regular-expressions" class="section level2">
+<h2>Regular Expressions</h2>
+<p>We’re going to start with a description of regular expressions, because an understanding of these really makes searching character strings a lot more powerful. I highly recommend the cheatsheet on regular expressions written by Ian Kopacka (I’ll attach it to the R club email).</p>
+<p>So what are regular expressions? They are patterns used to match character combinations. If you’ve ever searched on a search engine using * to represent multiple potential options then you’ve used a regular expression. There’s a few special symbols that can be used to represent different things, and I’ll list the ones I use the most (see the cheatsheet for a more comprehensive list):</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Character</th>
+<th align="left">Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">.</td>
+<td align="left">Any character</td>
+</tr>
+<tr class="even">
+<td align="left">|</td>
+<td align="left">Or</td>
+</tr>
+<tr class="odd">
+<td align="left">[…]</td>
+<td align="left">List permitted characters</td>
+</tr>
+<tr class="even">
+<td align="left">[a-z]</td>
+<td align="left">Specify range of permitted characters</td>
+</tr>
+<tr class="odd">
+<td align="left">^</td>
+<td align="left">Start of string</td>
+</tr>
+<tr class="even">
+<td align="left">$</td>
+<td align="left">End of string</td>
+</tr>
+<tr class="odd">
+<td align="left">*</td>
+<td align="left">Matches at least once</td>
+</tr>
+</tbody>
+</table>
+<p>You can use two backslashes to use the actual character of a special symbol and not it’s special meaning - for instance in the code above I used \* to show an asterisk in the table rather than a bulletpoint (which is a formatting rule for markdown).</p>
+<p>Examples:</p>
+<pre class="r"><code>vec &lt;- c(&quot;Bacteria&quot;,&quot;Mycorrhizal fungi&quot;,&quot;Pathogenic bacteria&quot;, &quot;Saprophytic fungi&quot;,&quot;Unidentified&quot;,&quot;Extremophilic bacteria&quot;,
+         &quot;Ectomycorrhizal fungi&quot;, &quot;Bacterial symbiont&quot;, &quot;Bacteria unidentified 0154&quot;, &quot;Unidentified fungal strain T86&quot;)
+
+# match to either fungi or bacteria
+grep(&quot;fungi|bacteria&quot;, vec, ignore.case = TRUE, value = TRUE)</code></pre>
+<pre><code>## [1] &quot;Bacteria&quot;                   &quot;Mycorrhizal fungi&quot;         
+## [3] &quot;Pathogenic bacteria&quot;        &quot;Saprophytic fungi&quot;         
+## [5] &quot;Extremophilic bacteria&quot;     &quot;Ectomycorrhizal fungi&quot;     
+## [7] &quot;Bacterial symbiont&quot;         &quot;Bacteria unidentified 0154&quot;</code></pre>
+<pre class="r"><code># match to anything that starts with Unidentified
+grep(&quot;^Unidentified&quot;, vec, value = TRUE)</code></pre>
+<pre><code>## [1] &quot;Unidentified&quot;                   &quot;Unidentified fungal strain T86&quot;</code></pre>
+<pre class="r"><code>vec &lt;- c(&quot;LL57 2UW&quot;,&quot;E4 6GH&quot;,&quot;LL57 1LE&quot;,&quot;W8 3PL&quot;,&quot;LL57 1AH&quot;, &quot;LL57 1AY&quot;, &quot;LL57 1DD&quot;,&quot;LL57 2AY&quot;, &quot;LL59 5AF&quot;,&quot;LL59 5AX&quot;, &quot;W1 1JE&quot;, &quot;EH8 6YX&quot;)
+
+# which postcodes start with LL57?
+grep(&quot;^LL57&quot;, vec, value = TRUE) </code></pre>
+<pre><code>## [1] &quot;LL57 2UW&quot; &quot;LL57 1LE&quot; &quot;LL57 1AH&quot; &quot;LL57 1AY&quot; &quot;LL57 1DD&quot; &quot;LL57 2AY&quot;</code></pre>
+<pre class="r"><code># which postcodes start with E or W?
+grep(&quot;^[EW]&quot;, vec, value = TRUE)</code></pre>
+<pre><code>## [1] &quot;E4 6GH&quot;  &quot;W8 3PL&quot;  &quot;W1 1JE&quot;  &quot;EH8 6YX&quot;</code></pre>
+<pre class="r"><code># which postcodes have a 1 after the space? Space is represented by \\s
+grep(&quot;\\s1&quot;, vec, value = TRUE)</code></pre>
+<pre><code>## [1] &quot;LL57 1LE&quot; &quot;LL57 1AH&quot; &quot;LL57 1AY&quot; &quot;LL57 1DD&quot; &quot;W1 1JE&quot;</code></pre>
+<pre class="r"><code># which postcodes start with two letters? The {} notation shows the previous bit will be repeated the number of times within the brackets
+grep(&quot;^[A-Z]{2}&quot;, vec, value = TRUE)</code></pre>
+<pre><code>## [1] &quot;LL57 2UW&quot; &quot;LL57 1LE&quot; &quot;LL57 1AH&quot; &quot;LL57 1AY&quot; &quot;LL57 1DD&quot; &quot;LL57 2AY&quot;
+## [7] &quot;LL59 5AF&quot; &quot;LL59 5AX&quot; &quot;EH8 6YX&quot;</code></pre>
+<pre class="r"><code># which postcodes have the format letter letter number number space number letter letter?
+grep(&quot;[A-Z]{2}[0-9]{2}\\s[0-9][A-Z]{2}&quot;, vec, value = TRUE) </code></pre>
+<pre><code>## [1] &quot;LL57 2UW&quot; &quot;LL57 1LE&quot; &quot;LL57 1AH&quot; &quot;LL57 1AY&quot; &quot;LL57 1DD&quot; &quot;LL57 2AY&quot;
+## [7] &quot;LL59 5AF&quot; &quot;LL59 5AX&quot;</code></pre>
+<p>The equivalent functions to grep and grepl in stringr are str_which and str_detect respectively. The stringr package uses notation similar to the tidyverse such that the first argument is the string you want to search, and the second is the pattern you are searching for.</p>
+<pre class="r"><code>library(stringr)
+str_detect(vec, &quot;\\s1&quot;) #similar to grepl</code></pre>
+<pre><code>##  [1] FALSE FALSE  TRUE FALSE  TRUE  TRUE  TRUE FALSE FALSE FALSE  TRUE
+## [12] FALSE</code></pre>
+<pre class="r"><code>str_which(vec, &quot;\\s1&quot;) # similar to grep with value = FALSE</code></pre>
+<pre><code>## [1]  3  5  6  7 11</code></pre>
+<pre class="r"><code>str_subset(vec, &quot;\\s1&quot;) # similar to grep with value = TRUE</code></pre>
+<pre><code>## [1] &quot;LL57 1LE&quot; &quot;LL57 1AH&quot; &quot;LL57 1AY&quot; &quot;LL57 1DD&quot; &quot;W1 1JE&quot;</code></pre>
+</div>
+</div>
+<div id="subsetting-and-splitting-strings" class="section level1">
+<h1>Subsetting and splitting strings</h1>
+<p>To subset and split strings there are multiple functions in base R depending on what specifically you want to do. There are also functions in stringr and stringi (I’m not going to go into these, I’ll attach the stringr cheatsheet).</p>
+<pre class="r"><code># return the first two digits of the postcodes
+substring(vec, 1, 2)</code></pre>
+<pre><code>##  [1] &quot;LL&quot; &quot;E4&quot; &quot;LL&quot; &quot;W8&quot; &quot;LL&quot; &quot;LL&quot; &quot;LL&quot; &quot;LL&quot; &quot;LL&quot; &quot;LL&quot; &quot;W1&quot; &quot;EH&quot;</code></pre>
+<pre class="r"><code># split the postcodes on the space
+strsplit(vec, &quot; &quot;)</code></pre>
+<pre><code>## [[1]]
+## [1] &quot;LL57&quot; &quot;2UW&quot; 
+## 
+## [[2]]
+## [1] &quot;E4&quot;  &quot;6GH&quot;
+## 
+## [[3]]
+## [1] &quot;LL57&quot; &quot;1LE&quot; 
+## 
+## [[4]]
+## [1] &quot;W8&quot;  &quot;3PL&quot;
+## 
+## [[5]]
+## [1] &quot;LL57&quot; &quot;1AH&quot; 
+## 
+## [[6]]
+## [1] &quot;LL57&quot; &quot;1AY&quot; 
+## 
+## [[7]]
+## [1] &quot;LL57&quot; &quot;1DD&quot; 
+## 
+## [[8]]
+## [1] &quot;LL57&quot; &quot;2AY&quot; 
+## 
+## [[9]]
+## [1] &quot;LL59&quot; &quot;5AF&quot; 
+## 
+## [[10]]
+## [1] &quot;LL59&quot; &quot;5AX&quot; 
+## 
+## [[11]]
+## [1] &quot;W1&quot;  &quot;1JE&quot;
+## 
+## [[12]]
+## [1] &quot;EH8&quot; &quot;6YX&quot;</code></pre>
+<p>The output of strsplit can be a bit of a pain, here’s one way to return only the first element of the split for each postcode:</p>
+<pre class="r"><code>sapply(strsplit(vec, &quot; &quot;), &quot;[&quot;,1)</code></pre>
+<pre><code>##  [1] &quot;LL57&quot; &quot;E4&quot;   &quot;LL57&quot; &quot;W8&quot;   &quot;LL57&quot; &quot;LL57&quot; &quot;LL57&quot; &quot;LL57&quot; &quot;LL59&quot; &quot;LL59&quot;
+## [11] &quot;W1&quot;   &quot;EH8&quot;</code></pre>
+<p>The “[”&quot; indicates you want sapply to subset the list, and the 1 indicates that you want the first element of each subsetting</p>
+<p>The functions regexpr and gregexpr identify where in the string the match is, and are very useful for extracting data with the regmatches function.</p>
+<pre class="r"><code>x &lt;- c(&quot;Phone: 0124667786&quot;, &quot;Call: 07864354419&quot;, &quot;+44786431343&quot;, &quot;Deiniol Road&quot;)
+m &lt;- regexpr(&quot;[0-9]+&quot;, x, perl=TRUE)
+regmatches(x, m)</code></pre>
+<pre><code>## [1] &quot;0124667786&quot;  &quot;07864354419&quot; &quot;44786431343&quot;</code></pre>
+<p>You can also extract the non-matches using regmatches and setting invert to TRUE</p>
+<pre class="r"><code>regmatches(x, m, invert = TRUE)</code></pre>
+<pre><code>## [[1]]
+## [1] &quot;Phone: &quot; &quot;&quot;       
+## 
+## [[2]]
+## [1] &quot;Call: &quot; &quot;&quot;      
+## 
+## [[3]]
+## [1] &quot;+&quot; &quot;&quot; 
+## 
+## [[4]]
+## [1] &quot;Deiniol Road&quot;</code></pre>
+<div id="joining-strings" class="section level2">
+<h2>Joining strings</h2>
+<p>To do the opposite of strsplit you can join strings together with paste.</p>
+<pre class="r"><code>x &lt;- c(&quot;ab&quot;,&quot;cd&quot;,&quot;ef&quot;,&quot;gh&quot;)
+y &lt;- c(&quot;up&quot;,&quot;down&quot;,&quot;up&quot;,&quot;down&quot;)
+
+paste(x,y, sep = &quot;_&quot;) #just paste together multiple strings and specify the separator</code></pre>
+<pre><code>## [1] &quot;ab_up&quot;   &quot;cd_down&quot; &quot;ef_up&quot;   &quot;gh_down&quot;</code></pre>
+<pre class="r"><code>paste(x,&quot;th&quot;, sep = &quot;-&quot;)</code></pre>
+<pre><code>## [1] &quot;ab-th&quot; &quot;cd-th&quot; &quot;ef-th&quot; &quot;gh-th&quot;</code></pre>
+<pre class="r"><code>paste0(x,y) # paste0 is for the case where you don&#39;t want anything between the objects</code></pre>
+<pre><code>## [1] &quot;abup&quot;   &quot;cddown&quot; &quot;efup&quot;   &quot;ghdown&quot;</code></pre>
+</div>
+<div id="splitting-columns-in-dataframes" class="section level2">
+<h2>Splitting columns in dataframes</h2>
+<p>While you can use strsplit to split a column in a dataframe it is a lot easier to use the separate function in tidyr</p>
+<pre class="r"><code>library(tidyr)
+df &lt;- data.frame(ID = c(&quot;PL1_2017_MAY&quot;, &quot;PL2_2017_MAY&quot;, &quot;PL1_2017_JUNE&quot;, &quot;PL2_2017_JUNE&quot;),
+                 Value = rnorm(4))
+
+df2 &lt;- separate(df, ID, into = c(&quot;Plot&quot;,&quot;Year&quot;,&quot;Month&quot;), sep = &quot;_&quot;)
+df2</code></pre>
+<pre><code>##   Plot Year Month      Value
+## 1  PL1 2017   MAY -1.7535092
+## 2  PL2 2017   MAY  1.4019138
+## 3  PL1 2017  JUNE -0.6847595
+## 4  PL2 2017  JUNE -0.5950643</code></pre>
+<p>You can specify convert = TRUE to convert the output into other formats, e.g. it would change Year into a numeric variable. For the equivalent of paste for combining columns you can use the unite function.</p>
+<pre class="r"><code>unite(df2, ID, Plot, Year, Month)</code></pre>
+<pre><code>##              ID      Value
+## 1  PL1_2017_MAY -1.7535092
+## 2  PL2_2017_MAY  1.4019138
+## 3 PL1_2017_JUNE -0.6847595
+## 4 PL2_2017_JUNE -0.5950643</code></pre>
+<p>The tidyr package also has a function called extract which can remove subsections of the specified column based on regular expressions.</p>
+<pre class="r"><code>tidyr::extract(df, ID, &quot;Month&quot;, regex = &quot;([[A-Z]]+$)&quot;)</code></pre>
+<pre><code>##   Month      Value
+## 1   MAY -1.7535092
+## 2   MAY  1.4019138
+## 3  JUNE -0.6847595
+## 4  JUNE -0.5950643</code></pre>
+<p>You have to use round brackets around your regex to define the grouping variable.</p>
+</div>
+</div>
+<div id="plotmath" class="section level1">
+<h1>plotmath</h1>
+<p>This is a quick section on how to get weird symbols onto your plot labels, mainly because I want to write the rules down somewhere before I forget. R has built in functionality to put all sorts of weird mathematical expressions on plots, see the help page for plotmath for a long list of things that are possible. I’m using expression to create the labels because it seems to be the simplest option I’ve found so far.</p>
+<p>~ means separate with a space * means put next to each other with no space ^ means the next bit put in superscript [] means put the bit in brackets in subscript</p>
+<pre class="r"><code>plot(cars, xlab = expression(&quot;Speed (hr&quot;^-1*&quot;)&quot;), ylab = expression(bold(Distance[30])~&quot;(ft)&quot;))</code></pre>
+<p><img src="/tutorial/Characters_files/figure-html/plot%20super%20and%20sub-1.png" width="672" /></p>
+<pre class="r"><code>par(mar = c(5,5,4,2) + 0.1)
+plot(cars, xlab = expression(pi~and~tilde(20)*degree), ylab = expression(infinity%down%N[2]*O-N))</code></pre>
+<p><img src="/tutorial/Characters_files/figure-html/plotmath%202-1.png" width="672" /></p>
+<pre class="r"><code>par(mar = c(5,5,4,2) + 0.1)
+plot(cars, 
+     ylab = expression(Delta^13*C-CO[2]~&quot;(\u2030)&quot;),  
+     xlab = expression(italic(A[380])~&quot;(&quot;*mu*&quot;mol&quot;~CO[2]~m^-2~s^-1*&quot;)&quot;))</code></pre>
+<p><img src="/tutorial/Characters_files/figure-html/plotmath%203-1.png" width="672" /></p>
+<pre class="r"><code>library(ggplot2)
+dat &lt;- data.frame(X = gl(7,1),
+                  Y = runif(7))
+
+ggplot(dat, aes(x = X, y =Y)) + geom_bar(stat = &quot;identity&quot;) +
+  geom_text(aes(y = Y + 0.1),
+            label = c(expression(alpha), 
+                      expression(beta), expression(gamma), 
+                      expression(delta), expression(epsilon), 
+                      expression(zeta), expression(eta))) +
+  labs(x = expression(infinity %~~% frac(Upsilon1, widetilde(alpha*beta))),
+       y = expression(Omega*bolditalic(&quot;(\u2020)&quot;)))</code></pre>
+<pre><code>## Warning in is.na(x): is.na() applied to non-(list or vector) of type
+## &#39;expression&#39;</code></pre>
+<p><img src="/tutorial/Characters_files/figure-html/ggplot-1.png" width="672" /></p>
+<pre class="r"><code>library(emojifont)
+load.emojifont(&quot;EmojiOne.ttf&quot;)
+
+foo &lt;- structure(list(name_emoji = c(&quot;closed book&quot;, &quot;confused face&quot;, 
+                                     &quot;dizzy&quot;, &quot;face with tears of joy&quot;, &quot;flexed biceps&quot;, &quot;light bulb&quot;), 
+                      n = c(1L, 7L, 20L, 1L, 1L, 1L), 
+                      emoji = c(&quot;\U0001f4d5&quot;, &quot;\U0001f615&quot;, &quot;\U0001f4ab&quot;, &quot;\U0001f602&quot;, &quot;\U0001f4aa&quot;, &quot;\U0001f4a1&quot;)), 
+                 .Names = c(&quot;name_emoji&quot;, &quot;n&quot;, &quot;emoji&quot;), row.names = c(NA, -6L), class = c(&quot;tbl_df&quot;, &quot;tbl&quot;, 
+                                                                                                                                                                   &quot;data.frame&quot;))
+ggplot(foo, aes(name_emoji, n, label = emoji)) + 
+  geom_bar(stat = &quot;identity&quot;) +
+  geom_text(family = &quot;EmojiOne&quot;, size = 6, vjust = -.5) +
+  scale_x_discrete(breaks = foo$name_emoji, labels = foo$emoji) +
+  theme(axis.title.x=element_blank(),
+        axis.text.x=element_blank(),
+        axis.ticks.x=element_blank())</code></pre>
+<p><img src="/tutorial/Characters_files/figure-html/emojifont-1.png" width="672" /></p>
+<pre class="r"><code>library(ggtree)</code></pre>
+<pre><code>## ggtree v1.12.7  For help: https://guangchuangyu.github.io/software/ggtree
+## 
+## If you use ggtree in published research, please cite:
+## Guangchuang Yu, David Smith, Huachen Zhu, Yi Guan, Tommy Tsan-Yuk Lam. ggtree: an R package for visualization and annotation of phylogenetic trees with their covariates and other associated data. Methods in Ecology and Evolution 2017, 8(1):28-36, doi:10.1111/2041-210X.12628</code></pre>
+<pre><code>## 
+## Attaching package: &#39;ggtree&#39;</code></pre>
+<pre><code>## The following object is masked from &#39;package:tidyr&#39;:
+## 
+##     expand</code></pre>
+<pre class="r"><code>tree_text &lt;- &quot;(((((cow, (whale, dolphin)), (pig2, boar)), camel), fish), seedling);&quot;
+x &lt;- read.tree(text=tree_text)
+ggtree(x, linetype=&quot;dashed&quot;, color=&#39;firebrick&#39;) +
+  xlim(NA, 7) + ylim(NA, 8.5) +
+  geom_tiplab(aes(color=label), parse=&#39;emoji&#39;, size=14, vjust=0.25) +
+  labs(caption=&quot;powered by ggtree + emojifont&quot;)</code></pre>
+<p><img src="/tutorial/Characters_files/figure-html/phylomoji-1.png" width="672" /></p>
+</div>
