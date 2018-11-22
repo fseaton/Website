@@ -3,7 +3,7 @@ title: Working with Characters
 author: Fiona Seaton
 date: 2018-11-20
 
-draft: true
+draft: false
 type: docs
 
 output:
@@ -14,7 +14,7 @@ linktitle: Characters
 menu:
   tutorial:
     parent: R club
-    weight: 6
+    weight: 8
 ---
 
 
@@ -27,7 +27,6 @@ menu:
 <li><a href="#joining-strings">Joining strings</a></li>
 <li><a href="#splitting-columns-in-dataframes">Splitting columns in dataframes</a></li>
 </ul></li>
-<li><a href="#plotmath">plotmath</a></li>
 </ul>
 </div>
 
@@ -66,7 +65,7 @@ grep(&quot;fungi&quot;, vec, value = FALSE) # ask it which elements of vec have 
 <pre><code>## [1] FALSE  TRUE FALSE  TRUE FALSE FALSE</code></pre>
 <div id="regular-expressions" class="section level2">
 <h2>Regular Expressions</h2>
-<p>We’re going to start with a description of regular expressions, because an understanding of these really makes searching character strings a lot more powerful. I highly recommend the cheatsheet on regular expressions written by Ian Kopacka (I’ll attach it to the R club email).</p>
+<p>We’re going to start with a description of regular expressions, because an understanding of these really makes searching character strings a lot more powerful. I highly recommend the cheatsheet on regular expressions written by Ian Kopacka (found at the bottom of <a href="https://www.rstudio.com/resources/cheatsheets/">this page</a>).</p>
 <p>So what are regular expressions? They are patterns used to match character combinations. If you’ve ever searched on a search engine using * to represent multiple potential options then you’ve used a regular expression. There’s a few special symbols that can be used to represent different things, and I’ll list the ones I use the most (see the cheatsheet for a more comprehensive list):</p>
 <table>
 <thead>
@@ -152,7 +151,7 @@ str_detect(vec, &quot;\\s1&quot;) #similar to grepl</code></pre>
 </div>
 <div id="subsetting-and-splitting-strings" class="section level1">
 <h1>Subsetting and splitting strings</h1>
-<p>To subset and split strings there are multiple functions in base R depending on what specifically you want to do. There are also functions in stringr and stringi (I’m not going to go into these, I’ll attach the stringr cheatsheet).</p>
+<p>To subset and split strings there are multiple functions in base R depending on what specifically you want to do. There are also functions in stringr and stringi (I’m not going to go into these, see their documentation and the stringr cheatsheet on the page linked above).</p>
 <pre class="r"><code># return the first two digits of the postcodes
 substring(vec, 1, 2)</code></pre>
 <pre><code>##  [1] &quot;LL&quot; &quot;E4&quot; &quot;LL&quot; &quot;W8&quot; &quot;LL&quot; &quot;LL&quot; &quot;LL&quot; &quot;LL&quot; &quot;LL&quot; &quot;LL&quot; &quot;W1&quot; &quot;EH&quot;</code></pre>
@@ -238,89 +237,32 @@ df &lt;- data.frame(ID = c(&quot;PL1_2017_MAY&quot;, &quot;PL2_2017_MAY&quot;, &
 
 df2 &lt;- separate(df, ID, into = c(&quot;Plot&quot;,&quot;Year&quot;,&quot;Month&quot;), sep = &quot;_&quot;)
 df2</code></pre>
-<pre><code>##   Plot Year Month      Value
-## 1  PL1 2017   MAY -1.7535092
-## 2  PL2 2017   MAY  1.4019138
-## 3  PL1 2017  JUNE -0.6847595
-## 4  PL2 2017  JUNE -0.5950643</code></pre>
+<pre><code>##   Plot Year Month       Value
+## 1  PL1 2017   MAY -1.50038946
+## 2  PL2 2017   MAY  0.21636893
+## 3  PL1 2017  JUNE  0.02475963
+## 4  PL2 2017  JUNE  0.28274710</code></pre>
 <p>You can specify convert = TRUE to convert the output into other formats, e.g. it would change Year into a numeric variable. For the equivalent of paste for combining columns you can use the unite function.</p>
 <pre class="r"><code>unite(df2, ID, Plot, Year, Month)</code></pre>
-<pre><code>##              ID      Value
-## 1  PL1_2017_MAY -1.7535092
-## 2  PL2_2017_MAY  1.4019138
-## 3 PL1_2017_JUNE -0.6847595
-## 4 PL2_2017_JUNE -0.5950643</code></pre>
+<pre><code>##              ID       Value
+## 1  PL1_2017_MAY -1.50038946
+## 2  PL2_2017_MAY  0.21636893
+## 3 PL1_2017_JUNE  0.02475963
+## 4 PL2_2017_JUNE  0.28274710</code></pre>
 <p>The tidyr package also has a function called extract which can remove subsections of the specified column based on regular expressions.</p>
-<pre class="r"><code>tidyr::extract(df, ID, &quot;Month&quot;, regex = &quot;([[A-Z]]+$)&quot;)</code></pre>
-<pre><code>##   Month      Value
-## 1   MAY -1.7535092
-## 2   MAY  1.4019138
-## 3  JUNE -0.6847595
-## 4  JUNE -0.5950643</code></pre>
+<pre class="r"><code>extract(df, ID, &quot;Month&quot;, regex = &quot;([[A-Z]]+$)&quot;)</code></pre>
+<pre><code>##   Month       Value
+## 1   MAY -1.50038946
+## 2   MAY  0.21636893
+## 3  JUNE  0.02475963
+## 4  JUNE  0.28274710</code></pre>
 <p>You have to use round brackets around your regex to define the grouping variable.</p>
+<p>You can also extract multiple columns using multiple grouping variables:</p>
+<pre class="r"><code>extract(df, ID, c(&quot;Year&quot;,&quot;Month&quot;), regex = &quot;([[0-9]]+)_([[A-Z]]+$)&quot;)</code></pre>
+<pre><code>##   Year Month       Value
+## 1 2017   MAY -1.50038946
+## 2 2017   MAY  0.21636893
+## 3 2017  JUNE  0.02475963
+## 4 2017  JUNE  0.28274710</code></pre>
 </div>
-</div>
-<div id="plotmath" class="section level1">
-<h1>plotmath</h1>
-<p>This is a quick section on how to get weird symbols onto your plot labels, mainly because I want to write the rules down somewhere before I forget. R has built in functionality to put all sorts of weird mathematical expressions on plots, see the help page for plotmath for a long list of things that are possible. I’m using expression to create the labels because it seems to be the simplest option I’ve found so far.</p>
-<p>~ means separate with a space * means put next to each other with no space ^ means the next bit put in superscript [] means put the bit in brackets in subscript</p>
-<pre class="r"><code>plot(cars, xlab = expression(&quot;Speed (hr&quot;^-1*&quot;)&quot;), ylab = expression(bold(Distance[30])~&quot;(ft)&quot;))</code></pre>
-<p><img src="/tutorial/Characters_files/figure-html/plot%20super%20and%20sub-1.png" width="672" /></p>
-<pre class="r"><code>par(mar = c(5,5,4,2) + 0.1)
-plot(cars, xlab = expression(pi~and~tilde(20)*degree), ylab = expression(infinity%down%N[2]*O-N))</code></pre>
-<p><img src="/tutorial/Characters_files/figure-html/plotmath%202-1.png" width="672" /></p>
-<pre class="r"><code>par(mar = c(5,5,4,2) + 0.1)
-plot(cars, 
-     ylab = expression(Delta^13*C-CO[2]~&quot;(\u2030)&quot;),  
-     xlab = expression(italic(A[380])~&quot;(&quot;*mu*&quot;mol&quot;~CO[2]~m^-2~s^-1*&quot;)&quot;))</code></pre>
-<p><img src="/tutorial/Characters_files/figure-html/plotmath%203-1.png" width="672" /></p>
-<pre class="r"><code>library(ggplot2)
-dat &lt;- data.frame(X = gl(7,1),
-                  Y = runif(7))
-
-ggplot(dat, aes(x = X, y =Y)) + geom_bar(stat = &quot;identity&quot;) +
-  geom_text(aes(y = Y + 0.1),
-            label = c(expression(alpha), 
-                      expression(beta), expression(gamma), 
-                      expression(delta), expression(epsilon), 
-                      expression(zeta), expression(eta))) +
-  labs(x = expression(infinity %~~% frac(Upsilon1, widetilde(alpha*beta))),
-       y = expression(Omega*bolditalic(&quot;(\u2020)&quot;)))</code></pre>
-<pre><code>## Warning in is.na(x): is.na() applied to non-(list or vector) of type
-## &#39;expression&#39;</code></pre>
-<p><img src="/tutorial/Characters_files/figure-html/ggplot-1.png" width="672" /></p>
-<pre class="r"><code>library(emojifont)
-load.emojifont(&quot;EmojiOne.ttf&quot;)
-
-foo &lt;- structure(list(name_emoji = c(&quot;closed book&quot;, &quot;confused face&quot;, 
-                                     &quot;dizzy&quot;, &quot;face with tears of joy&quot;, &quot;flexed biceps&quot;, &quot;light bulb&quot;), 
-                      n = c(1L, 7L, 20L, 1L, 1L, 1L), 
-                      emoji = c(&quot;\U0001f4d5&quot;, &quot;\U0001f615&quot;, &quot;\U0001f4ab&quot;, &quot;\U0001f602&quot;, &quot;\U0001f4aa&quot;, &quot;\U0001f4a1&quot;)), 
-                 .Names = c(&quot;name_emoji&quot;, &quot;n&quot;, &quot;emoji&quot;), row.names = c(NA, -6L), class = c(&quot;tbl_df&quot;, &quot;tbl&quot;, 
-                                                                                                                                                                   &quot;data.frame&quot;))
-ggplot(foo, aes(name_emoji, n, label = emoji)) + 
-  geom_bar(stat = &quot;identity&quot;) +
-  geom_text(family = &quot;EmojiOne&quot;, size = 6, vjust = -.5) +
-  scale_x_discrete(breaks = foo$name_emoji, labels = foo$emoji) +
-  theme(axis.title.x=element_blank(),
-        axis.text.x=element_blank(),
-        axis.ticks.x=element_blank())</code></pre>
-<p><img src="/tutorial/Characters_files/figure-html/emojifont-1.png" width="672" /></p>
-<pre class="r"><code>library(ggtree)</code></pre>
-<pre><code>## ggtree v1.12.7  For help: https://guangchuangyu.github.io/software/ggtree
-## 
-## If you use ggtree in published research, please cite:
-## Guangchuang Yu, David Smith, Huachen Zhu, Yi Guan, Tommy Tsan-Yuk Lam. ggtree: an R package for visualization and annotation of phylogenetic trees with their covariates and other associated data. Methods in Ecology and Evolution 2017, 8(1):28-36, doi:10.1111/2041-210X.12628</code></pre>
-<pre><code>## 
-## Attaching package: &#39;ggtree&#39;</code></pre>
-<pre><code>## The following object is masked from &#39;package:tidyr&#39;:
-## 
-##     expand</code></pre>
-<pre class="r"><code>tree_text &lt;- &quot;(((((cow, (whale, dolphin)), (pig2, boar)), camel), fish), seedling);&quot;
-x &lt;- read.tree(text=tree_text)
-ggtree(x, linetype=&quot;dashed&quot;, color=&#39;firebrick&#39;) +
-  xlim(NA, 7) + ylim(NA, 8.5) +
-  geom_tiplab(aes(color=label), parse=&#39;emoji&#39;, size=14, vjust=0.25) +
-  labs(caption=&quot;powered by ggtree + emojifont&quot;)</code></pre>
-<p><img src="/tutorial/Characters_files/figure-html/phylomoji-1.png" width="672" /></p>
 </div>

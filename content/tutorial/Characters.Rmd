@@ -3,7 +3,7 @@ title: Working with Characters
 author: Fiona Seaton
 date: 2018-11-20
 
-draft: true
+draft: false
 type: docs
 
 output:
@@ -14,7 +14,7 @@ linktitle: Characters
 menu:
   tutorial:
     parent: R club
-    weight: 6
+    weight: 8
 ---
 
 ```{r setup, include=FALSE}
@@ -71,7 +71,7 @@ endsWith(vec, "fungi")
 
 
 ## Regular Expressions
-We're going to start with a description of regular expressions, because an understanding of these really makes searching character strings a lot more powerful. I highly recommend the cheatsheet on regular expressions written by Ian Kopacka (I'll attach it to the R club email).
+We're going to start with a description of regular expressions, because an understanding of these really makes searching character strings a lot more powerful. I highly recommend the cheatsheet on regular expressions written by Ian Kopacka (found at the bottom of [this page](https://www.rstudio.com/resources/cheatsheets/)).
 
 So what are regular expressions? They are patterns used to match character combinations. If you've ever searched on a search engine using * to represent multiple potential options then you've used a regular expression. There's a few special symbols that can be used to represent different things, and I'll list the ones I use the most (see the cheatsheet for a more comprehensive list):
 
@@ -130,7 +130,7 @@ str_subset(vec, "\\s1") # similar to grep with value = TRUE
 
 
 # Subsetting and splitting strings
-To subset and split strings there are multiple functions in base R depending on what specifically you want to do. There are also functions in stringr and stringi (I'm not going to go into these, I'll attach the stringr cheatsheet).
+To subset and split strings there are multiple functions in base R depending on what specifically you want to do. There are also functions in stringr and stringi (I'm not going to go into these, see their documentation and the stringr cheatsheet on the page linked above).
 
 ```{r substring}
 # return the first two digits of the postcodes
@@ -203,8 +203,15 @@ unite(df2, ID, Plot, Year, Month)
 The tidyr package also has a function called extract which can remove subsections of the specified column based on regular expressions.
 
 ```{r extract}
-tidyr::extract(df, ID, "Month", regex = "([[A-Z]]+$)")
+extract(df, ID, "Month", regex = "([[A-Z]]+$)")
 
 ```
 You have to use round brackets around your regex to define the grouping variable.
+
+You can also extract multiple columns using multiple grouping variables:
+
+```{r}
+extract(df, ID, c("Year","Month"), regex = "([[0-9]]+)_([[A-Z]]+$)")
+```
+
 
