@@ -3,7 +3,7 @@ title: Analysis of Variance
 author: Fiona Seaton
 date: 2018-03-28
 
-draft: true
+draft: false
 toc: false
 type: docs
 
@@ -16,11 +16,10 @@ menu:
 
 
 
-<p>This tutorial is an introduction to simple linear regression in R, I’ve split it into two sections: first using lm to fit responses to numerical predictors then the use of ANOVAs with categorical predictors.</p>
+<p>This tutorial is the second part of the introduction to simple linear regression in R, the use of ANOVAs with categorical predictors.</p>
 <p>First we’re going to load in all the packages we’ll be using in this analysis.</p>
 <pre class="r"><code>library(agridat)          # a package of agricultural datasets
 library(summarytools)     # useful functions for summarising datasets
-library(psych)            # more functions for examining datasets
 library(dplyr)            # manipulating data
 library(ggplot2)          # plotting
 library(gridExtra)        # plotting in panels
@@ -28,6 +27,7 @@ library(car)              # extensions for regression
 library(AICcmodavg)       # calculates AICc</code></pre>
 <p>As we’re plotting with ggplot I’m going to set the theme now for the whole tutorial to make it look nicer to me - see the plotting tutorial for more information on the plotting commands.</p>
 <pre class="r"><code>theme_set(theme_bw() + theme(panel.grid = element_blank()))</code></pre>
+<p>We’re going to be using the apples data from the agridat package, an experiment from the 1980s on the impact of spacing, root stock and cultivars on apple tree yields. We’ll be focusing on the impact of spacing, which came in three different treatments: 6m, 10m and 14m apart.</p>
 <pre class="r"><code>apples &lt;- agridat::archbold.apple
 head(apples)</code></pre>
 <pre><code>##   rep row pos spacing    stock     gen yield trt
@@ -47,28 +47,158 @@ head(apples)</code></pre>
 ##  $ gen    : Factor w/ 2 levels &quot;Golden&quot;,&quot;Redspur&quot;: 2 1 2 1 2 1 2 1 2 2 ...
 ##  $ yield  : num  70.9 130.9 114.5 90.5 151.8 ...
 ##  $ trt    : int  601 602 611 612 671 672 661 662 1011 1071 ...</code></pre>
-<pre class="r"><code>summary(apples)</code></pre>
-<pre><code>##  rep          row              pos            spacing        stock   
-##  R1:24   Min.   : 2.000   Min.   : 1.000   Min.   : 6   M0007   :30  
-##  R2:24   1st Qu.: 5.750   1st Qu.: 5.000   1st Qu.: 6   MM106   :30  
-##  R3:24   Median : 9.000   Median :10.000   Median :10   MM111   :30  
-##  R4:24   Mean   : 9.017   Mean   : 9.242   Mean   :10   Seedling:30  
-##  R5:24   3rd Qu.:13.000   3rd Qu.:14.000   3rd Qu.:14                
-##          Max.   :16.000   Max.   :17.000   Max.   :14                
-##                                                                      
-##       gen         yield            trt        
-##  Golden :60   Min.   : 64.1   Min.   : 601.0  
-##  Redspur:60   1st Qu.:108.2   1st Qu.: 668.8  
-##               Median :147.1   Median :1036.5  
-##               Mean   :145.4   Mean   :1036.5  
-##               3rd Qu.:176.5   3rd Qu.:1404.2  
-##               Max.   :282.3   Max.   :1472.0  
-##               NA&#39;s   :28</code></pre>
-<pre class="r"><code>multi.hist(apples[,c(2,3,4,7,8)]) # only on numeric/integer variables</code></pre>
-<p><img src="/tutorial/ANOVA_0318_files/figure-html/examine%20apples-1.png" width="672" /></p>
-<pre class="r"><code>pairs.panels(apples[,c(2,3,4,7,8)], ellipses=F)</code></pre>
-<p><img src="/tutorial/ANOVA_0318_files/figure-html/examine%20apples-2.png" width="672" /></p>
-<p>examine data using graphs impact of spacing - do apples that are closer together have lower yield? There are only 3 spacing values so convert to category</p>
+<pre class="r"><code>print(dfSummary(apples), method = &quot;render&quot;)</code></pre>
+<div class="container st-container">
+<h3>Data Frame Summary  </h3>
+<h4>apples</h4>
+<strong>N</strong>: 120
+<table class="table table-striped table-bordered st-table st-table-striped st-table-bordered st-multiline ">
+  <thead>
+    <tr>
+      <th align="center"><strong>No</strong></th>
+      <th align="center"><strong>Variable</strong></th>
+      <th align="center"><strong>Stats / Values</strong></th>
+      <th align="center"><strong>Freqs (% of Valid)</strong></th>
+      <th align="center"><strong>Graph</strong></th>
+      <th align="center"><strong>Valid</strong></th>
+      <th align="center"><strong>Missing</strong></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center">1</td>
+      <td align="left">rep
+[factor]</td>
+      <td align="left">1. R1
+2. R2
+3. R3
+4. R4
+5. R5</td>
+      <td align="left">24 (20.0%)
+24 (20.0%)
+24 (20.0%)
+24 (20.0%)
+24 (20.0%)</td>
+      <td align="center" border="0"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAACCCAMAAACTmMFdAAAADFBMVEX9/v2mpqb39/f9/v0TNkn1AAAABHRSTlP///8AQCqp9AAAAMhJREFUeJzt16EBw0AQxEAn7r/npIAnQr9gpgKBO7DPO+m5HXAmq5jN+iz6Z333yCpkFbIKWYWsQlYhq5BVyCqGsxbNDrJJs1m3z+ho9xNvNxzIKmQVsgpZhaxCViGrkFUMZy2aXT6TZrNun9HR7ifebjiQVcgqZBWyClmFrEJWIauQVZiviaxi9rZWP/F2w4GsQlYhq5BVyCpkFbIKWYWswnxNZBWzt7X6ibcbDmQVsgpZhaxCViGrkFXIKoazFs0un0myitGsHzIonxNxzvqnAAAAAElFTkSuQmCC"></td>
+      <td align="center">120
+(100%)</td>
+      <td align="center">0
+(0%)</td>
+    </tr>
+    <tr>
+      <td align="center">2</td>
+      <td align="left">row
+[integer]</td>
+      <td align="left">mean (sd) : 9.02 (4.39)
+min &lt; med &lt; max :
+2 &lt; 9 &lt; 16
+IQR (CV) : 7.25 (0.49)</td>
+      <td align="left">15 distinct values</td>
+      <td align="center" border="0"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAABkCAMAAABThTnCAAAADFBMVEX9/v2mpqby8vL9/v28xacEAAAABHRSTlP///8AQCqp9AAAAJ1JREFUaIHt1kEKgCAQQFGr+9+5RZsglbHABnl/Gei8QMRypKz8DaiHNdLF2molYO3PsLCwsLCwsLCwsJZljb3L57GGRmDNZQXPzHRWbCkWFtZSrPcXUpjVHNFhBX/vC6s5AgsLq7emVgJW7BvWCqzYEZzO+rIdFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhYWFhZWMlaibqx0YY2UlHUC8vmIRnQLcnoAAAAASUVORK5CYII="></td>
+      <td align="center">120
+(100%)</td>
+      <td align="center">0
+(0%)</td>
+    </tr>
+    <tr>
+      <td align="center">3</td>
+      <td align="left">pos
+[integer]</td>
+      <td align="left">mean (sd) : 9.24 (4.92)
+min &lt; med &lt; max :
+1 &lt; 10 &lt; 17
+IQR (CV) : 9 (0.53)</td>
+      <td align="left">17 distinct values</td>
+      <td align="center" border="0"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAABkCAMAAABThTnCAAAADFBMVEX9/v2mpqby8vL9/v28xacEAAAABHRSTlP///8AQCqp9AAAAKdJREFUaIHt17sOwjAMBdAC///PDCyNUwWsVthSz139yBmyeHu1zFYNOA5WJh/WI2ZsWldjpmWp6YH1HBNZy+rEistS01hYWFhYWFhYWFhYt2N9uZOqWKluLKy/sX65/QtYy2EsLCwsrHaskC6sM2Wsu7GWn7iOdeG7WFhVrMOTo54Vu7GwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsHasRtmx2gUrk6asN1dog6HBNWo2AAAAAElFTkSuQmCC"></td>
+      <td align="center">120
+(100%)</td>
+      <td align="center">0
+(0%)</td>
+    </tr>
+    <tr>
+      <td align="center">4</td>
+      <td align="left">spacing
+[integer]</td>
+      <td align="left">mean (sd) : 10 (3.28)
+min &lt; med &lt; max :
+6 &lt; 10 &lt; 14
+IQR (CV) : 8 (0.33)</td>
+      <td align="left">6 : 40 (33.3%)
+10 : 40 (33.3%)
+14 : 40 (33.3%)</td>
+      <td align="center" border="0"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAABOCAMAAAD1sh+SAAAADFBMVEX9/v2mpqb39/f9/v0TNkn1AAAABHRSTlP///8AQCqp9AAAAINJREFUaIHt16EBw0AQxEAn7r/npIAng36BpgKBO7DPO+m5HXA2m/VZ9M/67ilLlCXKEmWJskRZoixRlihLDGctmh1kk2azbp/R0e4n3m44KEuUJcoSZYmyRFmiLFGWKEs0X0lZYva2Vj/xdsNBWaIsUZYoS5QlyhJlibJEWaL5SsoSPwWqXr0bCZNHAAAAAElFTkSuQmCC"></td>
+      <td align="center">120
+(100%)</td>
+      <td align="center">0
+(0%)</td>
+    </tr>
+    <tr>
+      <td align="center">5</td>
+      <td align="left">stock
+[factor]</td>
+      <td align="left">1. M0007
+2. MM106
+3. MM111
+4. Seedling</td>
+      <td align="left">30 (25.0%)
+30 (25.0%)
+30 (25.0%)
+30 (25.0%)</td>
+      <td align="center" border="0"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAABoCAMAAAAkR/m5AAAADFBMVEX9/v2mpqb39/f9/v0TNkn1AAAABHRSTlP///8AQCqp9AAAAKhJREFUaIHt17ENwDAMxEAn3n/nZAA1rMSCNwEL2cCfq3S2A2ZlEec+Rn/W61MWURZRFlEWURZRFlEWURZRFiHOMtIOMiVt1vYZjbwvcbthUBZRFlEWURZRFlEWURZRFlEW0XxFyiK0t2V9idsNg7KIsoiyiLKIsoiyiLKIsghxlpF2+SiVRWhP3vpBbDcMyiLKIsoiyiLKIsoiyiLKIsRZRtrlo1QW8QGZ2X9/log28AAAAABJRU5ErkJggg=="></td>
+      <td align="center">120
+(100%)</td>
+      <td align="center">0
+(0%)</td>
+    </tr>
+    <tr>
+      <td align="center">6</td>
+      <td align="left">gen
+[factor]</td>
+      <td align="left">1. Golden
+2. Redspur</td>
+      <td align="left">60 (50.0%)
+60 (50.0%)</td>
+      <td align="center" border="0"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAAA0CAMAAABfCzE1AAAADFBMVEX9/v2mpqb39/f9/v0TNkn1AAAABHRSTlP///8AQCqp9AAAAGJJREFUWIXt16EBADAIxEAo++/cDlATxYvcBBEgviZSbQf81XSil3XymEWYRZhFmEWYRZhFmEWYRZhFmEV07PKJZBYRe1upn7jd8GEWYRZhFmEWYRZhFmEWYRZhFuF8RUKzLroaPpLHM/aZAAAAAElFTkSuQmCC"></td>
+      <td align="center">120
+(100%)</td>
+      <td align="center">0
+(0%)</td>
+    </tr>
+    <tr>
+      <td align="center">7</td>
+      <td align="left">yield
+[numeric]</td>
+      <td align="left">mean (sd) : 145.4 (47.53)
+min &lt; med &lt; max :
+64.1 &lt; 147.05 &lt; 282.3
+IQR (CV) : 68.3 (0.33)</td>
+      <td align="left">85 distinct values</td>
+      <td align="center" border="0"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAABkCAMAAABThTnCAAAADFBMVEX9/v2mpqby8vL9/v28xacEAAAABHRSTlP///8AQCqp9AAAAMtJREFUaIHt2kEOgyAQQFG1979zk25Ko8YOKEz0/ZWZDS9ugITplbJpNGA7rEg1rLnsdNGnKtbyDesorEhYkbAiYUXKxCr3wUysgoKF1YN1zYmwmXXNj8PCwsLCeixr3j77DWftrI+FVcXau+KMZh2vj4WFtfzezVqJZ7LKMRZWalbwvNeNVb8+FhYWFhYWFhbWEFbj5ewqVvmNhYWFhfUM1t97UmfW9hgL616sileFPVg7Yyysx7LWW2UO1mqMdR9WogpWurAiJWW9AYMnk+UFd//tAAAAAElFTkSuQmCC"></td>
+      <td align="center">92
+(76.67%)</td>
+      <td align="center">28
+(23.33%)</td>
+    </tr>
+    <tr>
+      <td align="center">8</td>
+      <td align="left">trt
+[integer]</td>
+      <td align="left">mean (sd) : 1036.5 (329.39)
+min &lt; med &lt; max :
+601 &lt; 1036.5 &lt; 1472
+IQR (CV) : 735.5 (0.32)</td>
+      <td align="left">24 distinct values</td>
+      <td align="center" border="0"><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAJYAAABkCAMAAABThTnCAAAADFBMVEX9/v2mpqby8vL9/v28xacEAAAABHRSTlP///8AQCqp9AAAAHZJREFUaIHtzjEOwCAMBEFM/v9nijSAUmAJKS5m+ztNe0rW/gZ8h5XpZcVe6uPqOGZWX0s+Xxx3LCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsLCwsrBNWoSZWubAyFWUN6uOanb7PknkAAAAASUVORK5CYII="></td>
+      <td align="center">120
+(100%)</td>
+      <td align="center">0
+(0%)</td>
+    </tr>
+  </tbody>
+</table>
+<p>Generated by <a href='https://github.com/dcomtois/summarytools'>summarytools</a> 0.8.8 (<a href='https://www.r-project.org/'>R</a> version 3.5.1)<br/>2018-11-22</p>
+</div>
+<p>So do apples that are closer together have lower yield? There are only 3 spacing values so we’ll convert it to a categorical variable using as.factor.</p>
 <pre class="r"><code>apples$spacing2 &lt;- as.factor(apples$spacing)
 
 ggplot(apples, aes(spacing2, yield)) +
@@ -136,7 +266,7 @@ summary(apples.aov)</code></pre>
 ##   (28 observations deleted due to missingness)
 ## Multiple R-squared:  0.1742, Adjusted R-squared:  0.1556 
 ## F-statistic: 9.385 on 2 and 89 DF,  p-value: 0.0002003</code></pre>
-<pre class="r"><code>summary.lm(apples.aov)</code></pre>
+<pre class="r"><code>summary.lm(apples.aov) # can get equivalent output to lm using summary.lm</code></pre>
 <pre><code>## 
 ## Call:
 ## aov(formula = yield ~ spacing2, data = apples)

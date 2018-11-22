@@ -3,7 +3,7 @@ title: Analysis of Variance
 author: Fiona Seaton
 date: 2018-03-28
 
-draft: true
+draft: false
 toc: false
 type: docs
 
@@ -18,14 +18,13 @@ menu:
 knitr::opts_chunk$set(echo = TRUE, warning = FALSE, message = FALSE)
 ```
 
-This tutorial is an introduction to simple linear regression in R, I've split it into two sections: first using lm to fit responses to numerical predictors then the use of ANOVAs with categorical predictors.
+This tutorial is the second part of the introduction to simple linear regression in R, the use of ANOVAs with categorical predictors.
 
 First we're going to load in all the packages we'll be using in this analysis.
 
 ```{r packages}
 library(agridat)          # a package of agricultural datasets
 library(summarytools)     # useful functions for summarising datasets
-library(psych)            # more functions for examining datasets
 library(dplyr)            # manipulating data
 library(ggplot2)          # plotting
 library(gridExtra)        # plotting in panels
@@ -38,20 +37,19 @@ As we're plotting with ggplot I'm going to set the theme now for the whole tutor
 theme_set(theme_bw() + theme(panel.grid = element_blank()))
 ```
 
+We're going to be using the apples data from the agridat package, an experiment from the 1980s on the impact of spacing, root stock and cultivars on apple tree yields. We'll be focusing on the impact of spacing, which came in three different treatments: 6m, 10m and 14m apart.
 
 ```{r examine apples}
 apples <- agridat::archbold.apple
 head(apples)
 str(apples)
-summary(apples)
-multi.hist(apples[,c(2,3,4,7,8)]) # only on numeric/integer variables
-pairs.panels(apples[,c(2,3,4,7,8)], ellipses=F)
+
+print(dfSummary(apples), method = "render")
 
 ```
 
 
-examine data using graphs
-impact of spacing - do apples that are closer together have lower yield? There are only 3 spacing values so convert to category
+So do apples that are closer together have lower yield? There are only 3 spacing values so we'll convert it to a categorical variable using as.factor.
 
 ```{r apples spacing}
 apples$spacing2 <- as.factor(apples$spacing)
@@ -87,7 +85,7 @@ If wish to do a Tukey's HSD post-hoc test then need to fit model with aov rather
 apples.aov <- aov(yield ~ spacing2, data = apples)
 summary(apples.aov)
 summary(apples.m) # compare to lm output - different format but same numbers
-summary.lm(apples.aov)
+summary.lm(apples.aov) # can get equivalent output to lm using summary.lm
 
 TukeyHSD(apples.aov)
 
