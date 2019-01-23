@@ -10,4 +10,10 @@ image:
   focal_point: ''
 ---
 
-Welcome to my new website, which is barely working right now. This post will be somewhat of a test to see if I can get this to work
+Welcome to my new website, which is currently a work in progress. I've created this website for a couple of reasons:
+
+1. For a place to put the tutorials I create for the R club I run in Bangor
+2. Because I always like looking at other people's websites
+3. To see if I could
+
+The tutorials are linked to from the banner at the top, and so far it seems like I've been able to make this website thing work (watch as everything now breaks). That's entirely due to the blogdown package and hugo-academic which power this whole thing and without which there's no way I could have justified spending enough time away from work to actually make a functioning website. I make no promises as to blogging frequency or anything like that, so let's see how this goes. 
