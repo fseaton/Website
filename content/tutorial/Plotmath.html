@@ -42,10 +42,12 @@ menu:
 </tr>
 </tbody>
 </table>
-<pre class="r"><code>plot(cars, xlab = expression(&quot;Speed (hr&quot;^-1*&quot;)&quot;), ylab = expression(bold(Distance[30])~&quot;(ft)&quot;))</code></pre>
+<pre class="r"><code>plot(cars, xlab = expression(&quot;Speed (hr&quot;^-1*&quot;)&quot;), 
+     ylab = expression(bold(Distance[30])~&quot;(ft)&quot;))</code></pre>
 <p><img src="/tutorial/Plotmath_files/figure-html/plot%20super%20and%20sub-1.png" width="672" /></p>
 <pre class="r"><code>par(mar = c(5,5,4,2) + 0.1)
-plot(cars, xlab = expression(pi~and~tilde(20)*degree), ylab = expression(infinity%down%N[2]*O-N))</code></pre>
+plot(cars, xlab = expression(pi~and~tilde(20)*degree), 
+     ylab = expression(infinity%down%N[2]*O-N))</code></pre>
 <p><img src="/tutorial/Plotmath_files/figure-html/plotmath%202-1.png" width="672" /></p>
 <p>You can also reference unicode symbols directly, but not all are supported. I’m using “030” here to show the per mille symbol.</p>
 <pre class="r"><code>par(mar = c(5,5,4,2) + 0.1)
@@ -66,8 +68,6 @@ ggplot(dat, aes(x = X, y =Y)) + geom_bar(stat = &quot;identity&quot;) +
                       expression(zeta), expression(eta))) +
   labs(x = expression(infinity %~~% frac(Upsilon1, widetilde(alpha*beta))),
        y = expression(Omega*bolditalic(&quot;(\u2020)&quot;)))</code></pre>
-<pre><code>## Warning in is.na(x): is.na() applied to non-(list or vector) of type
-## &#39;expression&#39;</code></pre>
 <p><img src="/tutorial/Plotmath_files/figure-html/ggplot-1.png" width="672" /></p>
 <div id="emojis-because-why-not" class="section level3">
 <h3>emojis because why not</h3>
@@ -76,7 +76,8 @@ ggplot(dat, aes(x = X, y =Y)) + geom_bar(stat = &quot;identity&quot;) +
 
 # data setup
 df &lt;- data.frame(name_emoji = c(&quot;closed book&quot;, &quot;confused face&quot;,&quot;dizzy&quot;, 
-                                &quot;face with tears of joy&quot;, &quot;flexed biceps&quot;, &quot;light bulb&quot;), 
+                                &quot;face with tears of joy&quot;, 
+                                &quot;flexed biceps&quot;, &quot;light bulb&quot;), 
                       n = c(1L, 7L, 20L, 1L, 1L, 1L), 
                       emoji = c(&quot;\U0001f4d5&quot;, &quot;\U0001f615&quot;, &quot;\U0001f4ab&quot;, 
                                 &quot;\U0001f602&quot;, &quot;\U0001f4aa&quot;, &quot;\U0001f4a1&quot;))
@@ -89,15 +90,8 @@ ggplot(df, aes(name_emoji, n, label = emoji)) +
         axis.text.x=element_blank(),
         axis.ticks.x=element_blank())</code></pre>
 <p><img src="/tutorial/Plotmath_files/figure-html/emojifont-1.png" width="672" /></p>
-<pre class="r"><code>library(ggtree)</code></pre>
-<pre><code>## ggtree v1.14.3  For help: https://guangchuangyu.github.io/software/ggtree
-## 
-## If you use ggtree in published research, please cite the most appropriate paper(s):
-## 
-## - Guangchuang Yu, David Smith, Huachen Zhu, Yi Guan, Tommy Tsan-Yuk Lam. ggtree: an R package for visualization and annotation of phylogenetic trees with their covariates and other associated data. Methods in Ecology and Evolution 2017, 8(1):28-36, doi:10.1111/2041-210X.12628
-## 
-## - Guangchuang Yu, Tommy Tsan-Yuk Lam, Huachen Zhu, Yi Guan. Two methods for mapping and visualizing associated data on phylogeny using ggtree. Molecular Biology and Evolution 2018, accepted. doi: 10.1093/molbev/msy194</code></pre>
-<pre class="r"><code>tree_text &lt;- &quot;(((((cow, (whale, dolphin)), (pig2, boar)), camel), fish), seedling);&quot;
+<pre class="r"><code>library(ggtree)
+tree_text &lt;- &quot;(((((cow, (whale, dolphin)), (pig2, boar)), camel), fish), seedling);&quot;
 x &lt;- read.tree(text=tree_text)
 ggtree(x, linetype=&quot;dashed&quot;, color=&#39;firebrick&#39;) +
   xlim(NA, 7) + ylim(NA, 8.5) +

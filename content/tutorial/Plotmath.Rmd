@@ -14,7 +14,7 @@ menu:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE)
 ```
 
 
@@ -31,12 +31,14 @@ knitr::kable(reg_table)
 
 
 ```{r plot super and sub}
-plot(cars, xlab = expression("Speed (hr"^-1*")"), ylab = expression(bold(Distance[30])~"(ft)"))
+plot(cars, xlab = expression("Speed (hr"^-1*")"), 
+     ylab = expression(bold(Distance[30])~"(ft)"))
 ```
 
 ```{r plotmath 2}
 par(mar = c(5,5,4,2) + 0.1)
-plot(cars, xlab = expression(pi~and~tilde(20)*degree), ylab = expression(infinity%down%N[2]*O-N))
+plot(cars, xlab = expression(pi~and~tilde(20)*degree), 
+     ylab = expression(infinity%down%N[2]*O-N))
 ```
 
 You can also reference unicode symbols directly, but not all are supported. I'm using "\u2030" here to show the per mille symbol.
@@ -72,7 +74,8 @@ library(emojifont)
 
 # data setup
 df <- data.frame(name_emoji = c("closed book", "confused face","dizzy", 
-                                "face with tears of joy", "flexed biceps", "light bulb"), 
+                                "face with tears of joy", 
+                                "flexed biceps", "light bulb"), 
                       n = c(1L, 7L, 20L, 1L, 1L, 1L), 
                       emoji = c("\U0001f4d5", "\U0001f615", "\U0001f4ab", 
                                 "\U0001f602", "\U0001f4aa", "\U0001f4a1"))
