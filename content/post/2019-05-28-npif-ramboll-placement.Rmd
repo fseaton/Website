@@ -1,0 +1,25 @@
+---
+title: NPIF Ramboll Placement
+author: Fiona Seaton
+date: '2019-05-28'
+slug: npif-ramboll-placement
+categories: []
+tags: []
+image:
+  caption: ''
+  focal_point: ''
+---
+
+I recently finished a three-month placement at [Ramboll](https://uk.ramboll.com/), a civil engineering consultancy, in Southampton. I was given the opportunity to work with the Environment team there as part of an industry placement funded by the National Productivity Investment Fund (NPIF).
+
+During my placement I helped out with many different projects and got a great overview of what Ramboll’s environmental consultancy does. Ramboll is involved in a wide variety of projects and I was able to learn more and help with things ranging across various environmental impact assessments, site visits to new and ongoing schemes, and creating promotional material for recent exciting projects. I also assisted the team by researching a wide variety of topics and providing summary information on topics ranging from the adapting built infrastructure to climate change to the EU Marine Strategy Framework Directive.
+
+One of the main outputs from my placement was taking the UK Climate Projections released in 2018 by the Met Office ([UKCP18](https://www.metoffice.gov.uk/research/collaboration/ukcp)) and building an interactive app using R Shiny for users to easily get outputs that they could use in environmental impact assessments. This was a great opportunity for me to expand my skills while providing staff within the climate resilience network at Ramboll with a new tool. I was able to feedback information to Ramboll on the outputs from the climate projections, how to interpret their associated uncertainties, and how best to use them in their work.
+
+Overall this placement was a great opportunity for me to get involved in a sector that I had no experience in and see how companies work outside of academia. Everyone at Ramboll was incredibly welcoming and friendly and I very much enjoyed the opportunity to contribute as part of the team. I am very grateful to STARS and the NPIF for giving me this opportunity which will greatly help me make the decisions and next steps post-PhD; and also allowed me to live and work in the New Forest so I could explore a beautiful area and gain invaluable experience in dealing with animals on the road!
+
+![Cows in road](/post/2019-05-28-npif-ramboll-placement_files/Traffic-jam-in-the-New-Forest.jpg)
+*Traffic jam in the New Forest*
+
+![Horse in road](/post/2019-05-28-npif-ramboll-placement_files/Definitely-not-moving-for-some-pesky-car.jpg)
+*Definitely not moving for some pesky car*
