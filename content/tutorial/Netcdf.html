@@ -15,13 +15,11 @@ menu:
 
 
 
-<p>This is an introduction to working with netcdf files using data from the Hadley Centre, temperature on global grid. HadCRUT4 Combined land [CRUTEM4] and marine [SST anomalies from HadSST3] temperature anomalies on a 5? by 5? grid (Morice et al., 2012) Data is from: <a href="https://crudata.uea.ac.uk/cru/data/temperature/" class="uri">https://crudata.uea.ac.uk/cru/data/temperature/</a> <a href="https://crudata.uea.ac.uk/cru/data/temperature/HadCRUT.4.6.0.0.median.nc" class="uri">https://crudata.uea.ac.uk/cru/data/temperature/HadCRUT.4.6.0.0.median.nc</a></p>
-<pre class="r"><code>library(chron)</code></pre>
-<pre><code>## Warning: package &#39;chron&#39; was built under R version 3.5.2</code></pre>
-<pre class="r"><code>library(RColorBrewer)
+<p>This is an introduction to working with netcdf files using data from the Hadley Centre, showing temperature anomalies on a global 5 degree grid (Morice et al., 2012). The Data was downloaded from: <a href="https://crudata.uea.ac.uk/cru/data/temperature/" class="uri">https://crudata.uea.ac.uk/cru/data/temperature/</a></p>
+<pre class="r"><code>library(chron)
+library(RColorBrewer)
 library(lattice)
 library(ncdf4)</code></pre>
-<pre><code>## Warning: package &#39;ncdf4&#39; was built under R version 3.5.2</code></pre>
 <p>First of all we’re going to read in the data</p>
 <pre class="r"><code>## establish link to nc file
 nc &lt;- nc_open(&quot;HadCRUT.4.6.0.0.median.nc&quot;)
@@ -77,11 +75,7 @@ print(nc)</code></pre>
 ##         Conventions: CF-1.0
 ##         ensemble_members: 100
 ##         ensemble_member_index: 0</code></pre>
-<div id="reading-attributes" class="section level2">
-<h2>Reading attributes</h2>
-</div>
-<div id="get-a-list-of-the-netcdfs-r-attributes" class="section level1">
-<h1>Get a list of the NetCDF’s R attributes:</h1>
+<p>Netcdf files come with metadata known as attributes, these contain information about the whole file or specific variables such as units. We can get a list of our file’s attributes, as well as query specific attributes using the following commands.</p>
 <pre class="r"><code>attributes(nc)$names</code></pre>
 <pre><code>##  [1] &quot;filename&quot;    &quot;writable&quot;    &quot;id&quot;          &quot;safemode&quot;    &quot;format&quot;     
 ##  [6] &quot;is_GMT&quot;      &quot;groups&quot;      &quot;fqgn2Rindex&quot; &quot;ndims&quot;       &quot;natts&quot;      
@@ -106,9 +100,9 @@ attributes(nc$var)$names</code></pre>
 ## 
 ## $reference_period
 ## [1] 1961 1990</code></pre>
-<div id="read-data" class="section level2">
-<h2>Read data</h2>
-<p>Retrieve a matrix of the temperature data using the ncvar_get function:</p>
+<div id="read-data-as-matrix" class="section level2">
+<h2>Read data as matrix</h2>
+<p>We can retrieve a matrix of the temperature data using the ncvar_get function:</p>
 <pre class="r"><code>temp_anom &lt;- ncvar_get(nc, attributes(nc$var)$names[1])
 
 # Print the data&#39;s dimensions
@@ -126,13 +120,10 @@ nc_time &lt;- ncvar_get( nc, attributes(nc$dim)$names[4])
 
 print(paste(dim(nc_lat), &quot;latitudes and&quot;, dim(nc_lon), &quot;longitudes&quot;))</code></pre>
 <pre><code>## [1] &quot;36 latitudes and 72 longitudes&quot;</code></pre>
-<p>This is consistent with the 5 deg by 5deg matrix</p>
-</div>
-<div id="convert-the-time-variable" class="section level2">
-<h2>Convert the time variable</h2>
+<p>This is consistent with the 5 deg by 5 deg matrix</p>
+<p>The time variable isn’t in a particularly useful format, currently in “time-since”, so we can convert it into “real” (or more easily readable) time values by splitting the time tunits$value string into its component parts, and then using the chron() function to determine the absolute value of each time value from the time origin.</p>
 <pre class="r"><code>tunits &lt;- ncatt_get(nc, &quot;time&quot;, &quot;units&quot;)
 nt &lt;- dim(nc_time)
-# The time variable, in &quot;time-since&quot; units can be converted into &quot;real&quot; (or more easily readable) time values by splitting the time tunits$value string into its component parts, and then using the chron() function to determine the absolute value of each time value from the time origin.
 
 # split the time units string into fields
 tustr &lt;- strsplit(tunits$value, &quot; &quot;)
@@ -812,13 +803,12 @@ chron(nc_time, origin = c(tmonth, tday, tyear))</code></pre>
 ## [2005] (01/16/17 12:00:00) (02/15/17 00:00:00) (03/16/17 12:00:00)
 ## [2008] (04/16/17 00:00:00) (05/16/17 12:00:00) (06/16/17 00:00:00)
 ## [2011] (07/16/17 12:00:00) (08/16/17 12:00:00) (09/16/17 00:00:00)</code></pre>
-<p>all chron does here is spit it out, for manual verification</p>
-</div>
+<p>Here all chron is doing is spitting it out, for manual verification</p>
 </div>
 <div id="tidy-up-a-bit" class="section level1">
 <h1>Tidy up a bit</h1>
 <p>We can make the data a little easier to think about with a bit of labelling and by transposing the data matrix so that the latitudes are in the rows and longitudes are in the columns. This isn’t really critical though.</p>
-<p>Change the dimension names of our matrix to “lon”, “lat”, and “time” and the row and column names to the latitude, longitude, and time values.</p>
+<p>We’re going to change the dimension names of our matrix to “lon”, “lat”, and “time” and the row and column names to the latitude, longitude, and time values.</p>
 <pre class="r"><code>dimnames(temp_anom) &lt;- list(lon=nc_lon, lat=nc_lat, time=nc_time)
 
 ## check if worked
@@ -884,13 +874,13 @@ tmp.slice &lt;- temp_anom[, , m]
 # A quick look (map) at the extracted slice of data can be gotten using the image() function.
 
 image(nc_lon, nc_lat, tmp.slice, col = rev(brewer.pal(10, &quot;RdBu&quot;)))</code></pre>
-<p><img src="/tutorial/Netcdf_files/figure-html/unnamed-chunk-3-1.png" width="672" /></p>
+<p><img src="/tutorial/Netcdf_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
 <p>A better map can be obtained using the levelplot() function from the lattice package. The expand.grid() function is used to create a set of 720 by 360 pairs of latitude and longitude values (with latitudes varying most rapidly), one for each element in the tmp.slice array. Specific values of the cutpoints of temperature categories are defined to cover the range of temperature.</p>
 <pre class="r"><code>grid &lt;- expand.grid(lon = nc_lon, lat = nc_lat)
 cutpts &lt;- c(-3, -2, -1, 0, 1, 2, 3, 4, 5, 6, 7, 8)
 levelplot(tmp.slice ~ lon * lat, data = grid, at = cutpts, cuts = 11, pretty = T, 
           col.regions = (rev(brewer.pal(10, &quot;RdBu&quot;))))</code></pre>
-<p><img src="/tutorial/Netcdf_files/figure-html/unnamed-chunk-4-1.png" width="672" /></p>
+<p><img src="/tutorial/Netcdf_files/figure-html/unnamed-chunk-2-1.png" width="672" /></p>
 <p>To create a data frame, the expand.grid() function is used to create the 2592 pairs of values of longtiude and latitude, and the as.vector() function is used to “unstack” the slice of data into a long vector, the length of which can be verified using the length() function.</p>
 <pre class="r"><code>lonlat &lt;- expand.grid(lon = nc_lon, lat = nc_lat)
 tmp.vec &lt;- as.vector(tmp.slice)
