@@ -3,7 +3,7 @@ title: Panel plots
 author: Fiona Seaton
 date: 2019-05-29
 
-draft: true
+draft: false
 type: docs
 
 output:
@@ -49,6 +49,7 @@ hist(iris$Sepal.Length)
 hist(iris$Petal.Length)
 plot(Sepal.Length ~ Petal.Length, iris)</code></pre>
 <p><img src="/tutorial/Panel_plots_files/figure-html/layout-1.png" width="672" /></p>
+<pre class="r"><code>par(mfrow=c(1,1))</code></pre>
 </div>
 <div id="multiple-plots-with-ggplots" class="section level1">
 <h1>Multiple plots with ggplots</h1>
@@ -133,7 +134,7 @@ grid.newpage()
 combined &lt;- gtable_rbind(fg1, fg23) #combine plots
 grid.draw(combined) #plot plots</code></pre>
 <p><img src="/tutorial/Panel_plots_files/figure-html/egg%20nested-1.png" width="672" /></p>
-<p>You can see that this aligns the edges of the plots rather than the legends, unlike in cowplot which includes the legends in the alignment.</p>
+<p>You can see that this aligns the edges of the plots rather than the legends, unlike in cowplot which has not aligned the histogram to the facetted plot.</p>
 </div>
 </div>
 </div>

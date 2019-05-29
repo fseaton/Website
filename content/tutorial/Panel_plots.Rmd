@@ -3,7 +3,7 @@ title: Panel plots
 author: Fiona Seaton
 date: 2019-05-29
 
-draft: true
+draft: false
 type: docs
 
 output:
@@ -48,7 +48,7 @@ layout(matrix(c(1,2,3,3),nrow=2,ncol = 2, byrow = TRUE))
 hist(iris$Sepal.Length)
 hist(iris$Petal.Length)
 plot(Sepal.Length ~ Petal.Length, iris)
-
+par(mfrow=c(1,1))
 ```
 
 
@@ -167,7 +167,7 @@ grid.draw(combined) #plot plots
 
 ```
 
-You can see that this aligns the edges of the plots rather than the legends, unlike in cowplot which includes the legends in the alignment.
+You can see that this aligns the edges of the plots rather than the legends, unlike in cowplot which has not aligned the histogram to the facetted plot.
 
 
 
