@@ -1,0 +1,252 @@
+---
+title: Data manipulation
+author: Fiona Seaton
+date: 2018-10-09
+
+draft: false
+toc: false
+type: docs
+
+output:
+  blogdown::html_page:
+    toc: true
+
+linktitle: Data manipulation
+menu:
+  r-club:
+    parent: General
+    weight: 1
+---
+
+
+
+<p>This is a tutorial I wrote for R club on data manipulation and exploration. There’s several different ways of doing the same operation given, largely so that in future if you see one of them you know what is happening.</p>
+<p>First of all we need to load up the packages we want to use today</p>
+<pre class="r"><code>library(readr)   ## for reading in data
+library(dplyr)   ## for manipulating dataframes
+library(tidyr)   ## for conversion from wide to long format
+## alternatively use library(tidyverse) which contains dplyr, readr, tidyr and more
+library(janitor) ## for data cleaning tools</code></pre>
+<p>Now I’m going to read in the data from the working directory, this data represents a simulated field survey across three countries of soil properties.
+I’m using read_csv here from the readr package to read in the csv file, its behaviour is slightly different than read.csv in base R. For instance character strings are kept as characters, not converted to factors which many people dislike about base R (I’ve found the vast majority of my data that comes as characters is categorical so it’s not such an issue for me). It can also deal better with non-standard column names, which is why I’m using it here to show one of the cool things janitor does. The output is a tibble which displays different behaviour when printed to console
+Later on we’ll read in a file using read.csv and you’ll see some differences</p>
+<pre class="r"><code>CS &lt;- read_csv(&quot;CS_fake.csv&quot;)
+CS</code></pre>
+<pre><code>## # A tibble: 1,000 x 7
+##    `Plot ID`  Country County    `Carbon (%)` `Nitrogen (%)`    ph Habitat
+##    &lt;chr&gt;      &lt;chr&gt;   &lt;chr&gt;            &lt;dbl&gt;          &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;
+##  1 GCEXWQRYRK VAL     ERROLD            70.2           7.70  2.85       8
+##  2 JZCMAHEPQY RET     BOLTHAVEN         14.5           1.53  6.04       7
+##  3 DTVGQBSJIA VAL     TREVALE           28.6           5.93  5.00       4
+##  4 REJAJMVEIE HAR     GREENVALE         24.0           1.64  5.43       2
+##  5 FMWEYMKIGS VAL     EVENDIM           14.9           2.84  6.85       8
+##  6 KYULXCMWOJ VAL     EVENDIM           57.8           6.89  3.17       6
+##  7 CPKKYGMVFP RET     PETRAS            33.3           4.53  4.55       7
+##  8 TAYSUFTDEF RET     PETRAS            56.0           8.01  3.05       5
+##  9 EAYSCYXEST VAL     ERROLD            12.3           5.18  5.97       6
+## 10 NZONLIZVZK VAL     EVENDIM           74.5          10.0   2.54       9
+## # ... with 990 more rows</code></pre>
+<p>We can see that many of the columns have rather ugly names, which we’re going to deal with using the clean_names function in janitor</p>
+<pre class="r"><code>CS &lt;- clean_names(CS)
+colnames(CS)</code></pre>
+<pre><code>## [1] &quot;plot_id&quot;          &quot;country&quot;          &quot;county&quot;          
+## [4] &quot;carbon_percent&quot;   &quot;nitrogen_percent&quot; &quot;ph&quot;              
+## [7] &quot;habitat&quot;</code></pre>
+<p>You can change the way in which janitor converts the names by changing the case argument. My personal favourite is screaming snake but that’s mainly because of the delightful mental image.</p>
+<div id="subsetting-data" class="section level2">
+<h2>Subsetting data</h2>
+<p>Using base R
+In base R the square bracket notation is used for subsetting, e.g. data[3,1] means the 3rd row and 1st column of the data</p>
+<pre class="r"><code>CS[3,1]</code></pre>
+<pre><code>## # A tibble: 1 x 1
+##   plot_id   
+##   &lt;chr&gt;     
+## 1 DTVGQBSJIA</code></pre>
+<p>Use the arrows to assign a new object, selecting all the rows but only certain columns.
+Columns can be selected by their numbers:</p>
+<pre class="r"><code>CS_sel &lt;- CS[,1:3]
+CS_sel &lt;- CS[,c(1:3,5)]</code></pre>
+<p>Columns can also be selected by their names</p>
+<pre class="r"><code>CS_sel &lt;- CS[,c(&quot;plot_id&quot;,&quot;ph&quot;)]</code></pre>
+<p>There is also the subset function</p>
+<pre class="r"><code>CS_sel &lt;- subset(CS, select = c(plot_id, ph))</code></pre>
+<p>Alternatively the select`function within dplyr can be used to only pick some columns</p>
+<pre class="r"><code>CS_sel &lt;- select(CS, plot_id, carbon_percent, nitrogen_percent)
+CS_sel &lt;- select(CS, plot_id, country:county)</code></pre>
+<p>select() has a couple of helper functions which can be used to select multiple columns that have certain parts of their names in common, this can also be done in base R with regular expressions but it’s a bit clunky</p>
+<pre class="r"><code>CS_sel &lt;- select(CS, starts_with(&quot;count&quot;))
+
+## base R version
+CS_sel &lt;- CS[,grepl(&quot;^count&quot;,colnames(CS))]</code></pre>
+<pre class="r"><code>## by row number
+CS_fil &lt;- CS[1:100,]
+
+## by value of variable
+## only sites from HAR (categorical variable)
+CS_fil &lt;- CS[CS$country == &quot;HAR&quot;,]
+CS_fil &lt;- subset(CS, country == &quot;HAR&quot;)
+CS_fil &lt;- filter(CS, country == &quot;HAR&quot;)       ##dplyr
+
+## only carbon rich soils (numeric variable)
+CS_fil &lt;- CS[CS$carbon_percent &gt; 50,]
+CS_fil &lt;- filter(CS, carbon_percent &gt; 50)       ##dplyr
+## difference due to NA handling
+
+## two criteria
+## only high carbon soils from HAR
+CS_fil &lt;- CS[(CS$carbon_percent &gt; 50 &amp; CS$country == &quot;HAR&quot;),]  
+CS_fil &lt;- filter(CS, carbon_percent &gt; 50 &amp; country == &quot;HAR&quot;) ##dplyr
+
+## Har and Val soils
+CS_fil &lt;- CS[(CS$country==&quot;HAR&quot; | CS$country==&quot;VAL&quot;),]
+CS_fil &lt;- filter(CS, country == &quot;HAR&quot;|country == &quot;VAL&quot;)     ##dplyr</code></pre>
+</div>
+<div id="altering-variables" class="section level2">
+<h2>Altering variables</h2>
+<p>convert from number to categorical (i.e. factor) and vice versa</p>
+<pre class="r"><code>CS$habitat &lt;- as.factor(CS$habitat)
+summary(CS$habitat)</code></pre>
+<pre><code>##   1   2   3   4   5   6   7   8   9  10 
+##  95 107  95 109 106  99 106  99 105  79</code></pre>
+<pre class="r"><code># And back again!
+CS$habitat &lt;- as.numeric(as.character(CS$habitat))</code></pre>
+<p>create new variable based on current variable
+numeric to factor</p>
+<pre class="r"><code>CS$C_CAT &lt;- cut(CS$carbon_percent, c(0,10,30,50,100),
+                labels=c(&quot;Mineral&quot;,&quot;Humus-mineral&quot;, &quot;Organo-mineral&quot;,&quot;Organic&quot;))
+CS</code></pre>
+<pre><code>## # A tibble: 1,000 x 8
+##    plot_id country county carbon_percent nitrogen_percent    ph habitat
+##    &lt;chr&gt;   &lt;chr&gt;   &lt;chr&gt;           &lt;dbl&gt;            &lt;dbl&gt; &lt;dbl&gt;   &lt;dbl&gt;
+##  1 GCEXWQ~ VAL     ERROLD           70.2             7.70  2.85       8
+##  2 JZCMAH~ RET     BOLTH~           14.5             1.53  6.04       7
+##  3 DTVGQB~ VAL     TREVA~           28.6             5.93  5.00       4
+##  4 REJAJM~ HAR     GREEN~           24.0             1.64  5.43       2
+##  5 FMWEYM~ VAL     EVEND~           14.9             2.84  6.85       8
+##  6 KYULXC~ VAL     EVEND~           57.8             6.89  3.17       6
+##  7 CPKKYG~ RET     PETRAS           33.3             4.53  4.55       7
+##  8 TAYSUF~ RET     PETRAS           56.0             8.01  3.05       5
+##  9 EAYSCY~ VAL     ERROLD           12.3             5.18  5.97       6
+## 10 NZONLI~ VAL     EVEND~           74.5            10.0   2.54       9
+## # ... with 990 more rows, and 1 more variable: C_CAT &lt;fct&gt;</code></pre>
+<p>change labels of factor variable</p>
+<pre class="r"><code>levels(CS$C_CAT)</code></pre>
+<pre><code>## [1] &quot;Mineral&quot;        &quot;Humus-mineral&quot;  &quot;Organo-mineral&quot; &quot;Organic&quot;</code></pre>
+<pre class="r"><code>levels(CS$C_CAT) &lt;- c(&quot;M&quot;,&quot;HM&quot;,&quot;OM&quot;,&quot;O&quot;)
+summary(CS$C_CAT)</code></pre>
+<pre><code>##    M   HM   OM    O NA&#39;s 
+##   13  446  380  156    5</code></pre>
+<pre class="r"><code>CS$C_CAT &lt;- recode_factor(CS$C_CAT, 
+                          &quot;O&quot; = &quot;Org&quot;)      ##dplyr
+
+summary(CS$C_CAT)</code></pre>
+<pre><code>##  Org    M   HM   OM NA&#39;s 
+##  156   13  446  380    5</code></pre>
+</div>
+<div id="converting-from-wide-to-long-format-and-vice-versa" class="section level2">
+<h2>Converting from wide to long format (and vice versa)</h2>
+<p>Read in the data using the base R function read.csv</p>
+<pre class="r"><code>CS_INV &lt;- read.csv(&quot;CS_inverts.csv&quot;)
+str(CS_INV)</code></pre>
+<pre><code>## &#39;data.frame&#39;:    1000 obs. of  9 variables:
+##  $ ID   : Factor w/ 1000 levels &quot;AARNOEIXTK&quot;,&quot;AASEUFESNB&quot;,..: 247 393 153 675 221 422 98 751 166 539 ...
+##  $ MITE1: int  3 5 2 2 0 0 5 5 0 0 ...
+##  $ MITE2: int  2 2 0 0 4 2 0 0 2 3 ...
+##  $ MITE3: int  0 0 5 0 3 12 0 1 4 1 ...
+##  $ MITE4: int  0 1 1 0 3 0 0 1 1 0 ...
+##  $ COLL1: int  1 0 0 0 0 2 1 0 0 2 ...
+##  $ COLL2: int  3 0 2 0 5 1 2 1 0 2 ...
+##  $ COLL3: int  8 3 0 0 7 8 2 0 19 4 ...
+##  $ COLL4: int  4 3 1 0 10 1 2 2 2 1 ...</code></pre>
+<p>Notice that we’re now using str to see the data’s structure - if we were to print CS_INV to screen it would try and print out every row of the data. This is because read.csv reads the data in as a data.frame not a tibble.</p>
+<p>This dataset represents counts of different types of mites and collembola from the soil samples. (This is all still simulated, no mesofauna were harmed in the making of this tutorial)</p>
+<p>The data is in wide format. Wide format means we have one sample (or site) per row, with multiple measurements across multiple columns.
+Long format is when we have the results of each measurement in one column, with a second column identifying the type of measurement. If this isn’t particularly clear wait until you see the output of the following code and it should make more sense.</p>
+<p>We’re using the gather function from the tidyr package to convert the wide format data into long format.The reshape2 package also has functions to do this however I’ve discovered that my brain appears to max out at understanding one way to do it. Many use reshape2 and I can’t give a good comparison of the two but tidyr works for me.</p>
+<pre class="r"><code>CS_INV_long &lt;- gather(CS_INV, key = &quot;Group&quot;, value = &quot;Count&quot;, MITE1:COLL4)
+head(CS_INV_long)</code></pre>
+<pre><code>##           ID Group Count
+## 1 GCEXWQRYRK MITE1     3
+## 2 JZCMAHEPQY MITE1     5
+## 3 DTVGQBSJIA MITE1     2
+## 4 REJAJMVEIE MITE1     2
+## 5 FMWEYMKIGS MITE1     0
+## 6 KYULXCMWOJ MITE1     0</code></pre>
+<pre class="r"><code>CS_INV_long &lt;- filter(CS_INV_long, Count &gt; 0)
+head(CS_INV_long)</code></pre>
+<pre><code>##           ID Group Count
+## 1 GCEXWQRYRK MITE1     3
+## 2 JZCMAHEPQY MITE1     5
+## 3 DTVGQBSJIA MITE1     2
+## 4 REJAJMVEIE MITE1     2
+## 5 CPKKYGMVFP MITE1     5
+## 6 TAYSUFTDEF MITE1     5</code></pre>
+<p>To get back to wide format we use the spread function from the same package, specifying that we want all empty data combinations to be filled with zeros</p>
+<pre class="r"><code>## long to wide format
+CS_INV_2 &lt;- spread(CS_INV_long, key=Group, value=Count, fill=0)   ##tidyr
+head(CS_INV_2)</code></pre>
+<pre><code>##           ID COLL1 COLL2 COLL3 COLL4 MITE1 MITE2 MITE3 MITE4
+## 1 AARNOEIXTK     1     7     5     3     0     1     7     3
+## 2 AASEUFESNB     2     1     5     0     0     0     1     0
+## 3 ABCYSBVXNC     1     1     2     0     0     0     4     0
+## 4 ABEENBZIAU     1     2     1     7     4     3     0     1
+## 5 ABMLDUMMAC     0     5     1     1     0     0     0     1
+## 6 ABYSCFZCVH     2     3     8     1     0     1     0     2</code></pre>
+</div>
+<div id="combining-dataframes" class="section level2">
+<h2>Combining dataframes</h2>
+<p>We have two datasets with different measurements from the same plots, we can merge these together using the ID as a reference</p>
+<p>within base R use the merge function. We specify the ID columns for both datasets (if they had the same name we could just set by = “that name”), we also specify that we want copies of all the rows, even if they have no corresponding match in the other data frame by setting all = TRUE</p>
+<pre class="r"><code>CS_mer &lt;- merge(CS, CS_INV, by.x = &quot;plot_id&quot;, by.y = &quot;ID&quot;, all = TRUE)</code></pre>
+<p>within dplyr the equivalent is the join set of commands</p>
+<pre class="r"><code>CS_mer &lt;- full_join(CS, CS_INV, by = c(&quot;plot_id&quot; = &quot;ID&quot;)) #does the same as before
+CS_mer &lt;- inner_join(CS, CS_INV, by = c(&quot;plot_id&quot; = &quot;ID&quot;)) #returns only the rows with matching values
+CS_mer &lt;- left_join(CS, CS_INV, by = c(&quot;plot_id&quot; = &quot;ID&quot;))  #returns all the rows in the first dataframe and columns from both
+CS_mer &lt;- right_join(CS, CS_INV, by = c(&quot;plot_id&quot; = &quot;ID&quot;)) #returns all the rows in the second dataframe and columns from both</code></pre>
+<p>There are also filtering joins within dplyr where the command returns only the columns from the first dataframe but filters the rows so that only the rows that appear in the second dataframe are returned, or alternatively those that don’t appear with anti_join</p>
+<pre class="r"><code>CS_join &lt;- semi_join(CS_INV, CS, by = c(&quot;ID&quot; = &quot;plot_id&quot;))
+CS_join &lt;- anti_join(CS_INV, CS, by = c(&quot;ID&quot; = &quot;plot_id&quot;))</code></pre>
+</div>
+<div id="combining-multiple-operations-with-the-pipe" class="section level2">
+<h2>Combining multiple operations with the pipe %&gt;%</h2>
+<p>Say you want to create a long format dataframe with only the mites, and take the logarithm of the mite count. We could do this step by step as above, assigning a new object each time. However we can use the pipe to cut down on the amount of clutter in our R environment.
+The pipe %&gt;% tells R to take the thing on the left of the pipe and apply the operation on the right to it. This means multiple operations can be chained together, hopefully making life a little easier.</p>
+<pre class="r"><code>CS_MITE_LONG &lt;- CS_INV %&gt;% select(ID, starts_with(&quot;MITE&quot;)) %&gt;%        #Takes the CS_INV dataframe and selects only the ID and mite column
+  gather(key = &quot;Group&quot;, value = &quot;Count&quot;, starts_with(&quot;MITE&quot;)) %&gt;%     #convert to long format
+  filter(Count &gt; 0) %&gt;%                                               #remove all zero count rows
+  mutate(log_Count = log(Count))                                      #mutate adds columns, here it is the log of the mite count
+head(CS_MITE_LONG)</code></pre>
+<pre><code>##           ID Group Count log_Count
+## 1 GCEXWQRYRK MITE1     3 1.0986123
+## 2 JZCMAHEPQY MITE1     5 1.6094379
+## 3 DTVGQBSJIA MITE1     2 0.6931472
+## 4 REJAJMVEIE MITE1     2 0.6931472
+## 5 CPKKYGMVFP MITE1     5 1.6094379
+## 6 TAYSUFTDEF MITE1     5 1.6094379</code></pre>
+<p>How about calculating total mite and collembola counts and adding to the previous dataset?</p>
+<pre class="r"><code>CS_full &lt;- CS_INV %&gt;% 
+  mutate(TOTAL_MITE = MITE1 + MITE2 + MITE3 + MITE4,
+         TOTAL_COLL = COLL1 + COLL2 + COLL3 + COLL4) %&gt;%
+  select(ID, TOTAL_MITE, TOTAL_COLL) %&gt;%
+  full_join(CS, by=c(&quot;ID&quot; = &quot;plot_id&quot;))
+head(CS_full)</code></pre>
+<pre><code>##           ID TOTAL_MITE TOTAL_COLL country    county carbon_percent
+## 1 GCEXWQRYRK          5         16     VAL    ERROLD       70.17699
+## 2 JZCMAHEPQY          8          6     RET BOLTHAVEN       14.53870
+## 3 DTVGQBSJIA          8          3     VAL   TREVALE       28.61449
+## 4 REJAJMVEIE          2          0     HAR GREENVALE       23.99431
+## 5 FMWEYMKIGS         10         22     VAL   EVENDIM       14.90282
+## 6 KYULXCMWOJ         14         12     VAL   EVENDIM       57.77737
+##   nitrogen_percent       ph habitat C_CAT
+## 1         7.695723 2.852600       8   Org
+## 2         1.533813 6.041698       7    HM
+## 3         5.925866 5.003867       4    HM
+## 4         1.640570 5.429147       2    HM
+## 5         2.843174 6.851267       8    HM
+## 6         6.886864 3.171440       6   Org</code></pre>
+<p>If you’re interested in why the pipe has % signs on either side, it’s the syntax used in R to show it’s a function that does something with the things on either side of it. Another common example is %in% which tells you if the things in the object to the left are in the object to the right.
+e.g.</p>
+<pre class="r"><code>c(1,3,5) %in% c(2,3,4)</code></pre>
+<pre><code>## [1] FALSE  TRUE FALSE</code></pre>
+<p>This is different to the usual R notation where you have a function with arguments declared within it.</p>
+</div>

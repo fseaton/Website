@@ -1,0 +1,397 @@
+---
+title: Analysis of Variance
+author: Fiona Seaton
+date: 2018-03-28
+
+draft: false
+toc: false
+type: docs
+
+linktitle: ANOVAs
+menu:
+  r-club:
+    parent: Modelling
+    weight: 6
+---
+
+
+
+<p>This tutorial is the second part of the introduction to simple linear regression in R, the use of ANOVAs with categorical predictors.</p>
+<p>First we’re going to load in all the packages we’ll be using in this analysis.</p>
+<pre class="r"><code>library(agridat)          # a package of agricultural datasets
+library(summarytools)     # useful functions for summarising datasets
+library(dplyr)            # manipulating data
+library(ggplot2)          # plotting
+library(gridExtra)        # plotting in panels
+library(car)              # extensions for regression
+library(AICcmodavg)       # calculates AICc</code></pre>
+<p>As we’re plotting with ggplot I’m going to set the theme now for the whole tutorial to make it look nicer to me - see the plotting tutorial for more information on the plotting commands.</p>
+<pre class="r"><code>theme_set(theme_bw() + theme(panel.grid = element_blank()))</code></pre>
+<p>We’re going to be using the apples data from the agridat package, an experiment from the 1980s on the impact of spacing, root stock and cultivars on apple tree yields. We’ll be focusing on the impact of spacing, which came in three different treatments: 6m, 10m and 14m apart.</p>
+<pre class="r"><code>apples &lt;- agridat::archbold.apple
+head(apples)</code></pre>
+<pre><code>##   rep row pos spacing    stock     gen yield trt
+## 1  R1   2   1       6 Seedling Redspur  70.9 601
+## 2  R1   2   2       6 Seedling  Golden 130.9 602
+## 3  R1   2   8       6    MM111 Redspur 114.5 611
+## 4  R1   2   7       6    MM111  Golden  90.5 612
+## 5  R1   2   3       6    M0007 Redspur 151.8 671
+## 6  R1   2   4       6    M0007  Golden 125.0 672</code></pre>
+<pre class="r"><code>str(apples)</code></pre>
+<pre><code>## &#39;data.frame&#39;:    120 obs. of  8 variables:
+##  $ rep    : Factor w/ 5 levels &quot;R1&quot;,&quot;R2&quot;,&quot;R3&quot;,..: 1 1 1 1 1 1 1 1 1 1 ...
+##  $ row    : int  2 2 2 2 2 2 2 2 2 2 ...
+##  $ pos    : int  1 2 8 7 3 4 5 6 16 12 ...
+##  $ spacing: int  6 6 6 6 6 6 6 6 10 10 ...
+##  $ stock  : Factor w/ 4 levels &quot;M0007&quot;,&quot;MM106&quot;,..: 4 4 3 3 1 1 2 2 3 1 ...
+##  $ gen    : Factor w/ 2 levels &quot;Golden&quot;,&quot;Redspur&quot;: 2 1 2 1 2 1 2 1 2 2 ...
+##  $ yield  : num  70.9 130.9 114.5 90.5 151.8 ...
+##  $ trt    : int  601 602 611 612 671 672 661 662 1011 1071 ...</code></pre>
+<pre class="r"><code>print(dfSummary(apples), method = &quot;render&quot;)</code></pre>
+<div class="container st-container">
+<h3>Data Frame Summary</h3>
+<h4>apples</h4>
+<strong>Dimensions</strong>: 120 x 8
+  <br/><strong>Duplicates</strong>: 0
+<br/>
+<table class="table table-striped table-bordered st-table st-table-striped st-table-bordered st-multiline ">
+  <thead>
+    <tr>
+      <th align="center" class="no st-protect-top-border"><strong>No</strong></th>
+      <th align="center" class="variable st-protect-top-border"><strong>Variable</strong></th>
+      <th align="center" class="stats.values st-protect-top-border"><strong>Stats / Values</strong></th>
+      <th align="center" class="freqs.pct.valid st-protect-top-border"><strong>Freqs (% of Valid)</strong></th>
+      <th align="center" class="graph st-protect-top-border"><strong>Graph</strong></th>
+      <th align="center" class="valid st-protect-top-border"><strong>Valid</strong></th>
+      <th align="center" class="missing st-protect-top-border"><strong>Missing</strong></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td align="center">1</td>
+      <td align="left">rep
+[factor]</td>
+      <td align="left">1. R1
+2. R2
+3. R3
+4. R4
+5. R5</td>
+      <td align="left" style="padding:0;vertical-align:middle"><table style="border-collapse:collapse;border:none;margin:0"><tr style="background-color:transparent"><td style="padding:0 5px 0 7px;margin:0;border:0" align="right">24</td><td style="padding:0 2px 0 0;border:0;" align="left">(</td><td style="padding:0;border:0" align="right">20.0%</td><td style="padding:0 4px 0 2px;border:0" align="left">)</td></tr><tr style="background-color:transparent"><td style="padding:0 5px 0 7px;margin:0;border:0" align="right">24</td><td style="padding:0 2px 0 0;border:0;" align="left">(</td><td style="padding:0;border:0" align="right">20.0%</td><td style="padding:0 4px 0 2px;border:0" align="left">)</td></tr><tr style="background-color:transparent"><td style="padding:0 5px 0 7px;margin:0;border:0" align="right">24</td><td style="padding:0 2px 0 0;border:0;" align="left">(</td><td style="padding:0;border:0" align="right">20.0%</td><td style="padding:0 4px 0 2px;border:0" align="left">)</td></tr><tr style="background-color:transparent"><td style="padding:0 5px 0 7px;margin:0;border:0" align="right">24</td><td style="padding:0 2px 0 0;border:0;" align="left">(</td><td style="padding:0;border:0" align="right">20.0%</td><td style="padding:0 4px 0 2px;border:0" align="left">)</td></tr><tr style="background-color:transparent"><td style="padding:0 5px 0 7px;margin:0;border:0" align="right">24</td><td style="padding:0 2px 0 0;border:0;" align="left">(</td><td style="padding:0;border:0" align="right">20.0%</td><td style="padding:0 4px 0 2px;border:0" align="left">)</td></tr></table></td>
+      <td align="left" style="vertical-align:middle;padding:0;background-color:transparent"><img style="border:none;background-color:transparent;padding:0" src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAACsAAACABAMAAABgqI3eAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAD1BMVEX////9/v2mpqb39/f///+DdZCQAAAAAnRSTlMAAHaTzTgAAAABYktHRACIBR1IAAAAB3RJTUUH4wUfEgQI6YsxHQAAAD5JREFUSMdjYKAtUEIFClBhZWMUMCo8FIRxxKUgKhAgS3g0nQx74dHkMypMgfBo8hkVpkB4NPmMClOQTmgFAGqzTOpnBwEvAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDE5LTA1LTMxVDE3OjA0OjA4KzAxOjAwda409gAAACV0RVh0ZGF0ZTptb2RpZnkAMjAxOS0wNS0zMVQxNzowNDowOCswMTowMATzjEoAAAAASUVORK5CYII="></td>
+      <td align="center">120
+(100%)</td>
+      <td align="center">0
+(0%)</td>
+    </tr>
+    <tr>
+      <td align="center">2</td>
+      <td align="left">row
+[integer]</td>
+      <td align="left">Mean (sd) : 9 (4.4)
+min < med < max:
+2 < 9 < 16
+IQR (CV) : 7.2 (0.5)</td>
+      <td align="left" style="vertical-align:middle">15 distinct values</td>
+      <td align="left" style="vertical-align:middle;padding:0;background-color:transparent"><img style="border:none;background-color:transparent;padding:0" src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAJgAAABuBAMAAAApJ8cWAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAD1BMVEX////9/v2mpqby8vL///8shn5hAAAAAnRSTlMAAHaTzTgAAAABYktHRACIBR1IAAAAB3RJTUUH4wUfEgQI6YsxHQAAAH5JREFUaN7t1sENgCAMQNGuoBsIG8j+u3lReqApSe0J/j/10hdCSFSEIpXedcR7sdq+wMDAwMDAJp36CUrA+sK9DGbcTxyr4yIY2C/M+of0Md0YMOuMPqYT2CaYvp8EzJh2wfQeE7DmTmBgYGBgYGBgYGBgYGBgYOtiJSWhSA9fk2gMOWt5JwAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAxOS0wNS0zMVQxNzowNDowOCswMTowMHWuNPYAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMTktMDUtMzFUMTc6MDQ6MDgrMDE6MDAE84xKAAAAAElFTkSuQmCC"></td>
+      <td align="center">120
+(100%)</td>
+      <td align="center">0
+(0%)</td>
+    </tr>
+    <tr>
+      <td align="center">3</td>
+      <td align="left">pos
+[integer]</td>
+      <td align="left">Mean (sd) : 9.2 (4.9)
+min < med < max:
+1 < 10 < 17
+IQR (CV) : 9 (0.5)</td>
+      <td align="left" style="vertical-align:middle">17 distinct values</td>
+      <td align="left" style="vertical-align:middle;padding:0;background-color:transparent"><img style="border:none;background-color:transparent;padding:0" src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAJgAAABuBAMAAAApJ8cWAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAD1BMVEX////9/v2mpqby8vL///8shn5hAAAAAnRSTlMAAHaTzTgAAAABYktHRACIBR1IAAAAB3RJTUUH4wUfEgQI6YsxHQAAAIlJREFUaN7t1VEKgCAQhGGvYDdIb1D3v1tQO4FiELpBxT9vzsr3soghkJ4kyxz3TOVRUZ3a42hYXo8IK48nZvXSHoOBgYGBgX0Oq7/TIeyiBnsJpmW7YDZewMDA7mN6hC5YLhGwx7BqbWNYbt4G88e0NhdMNRgYGBgYGBgYGBgYGNgPsOSSQHqyAaThpGALfL8sAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDE5LTA1LTMxVDE3OjA0OjA4KzAxOjAwda409gAAACV0RVh0ZGF0ZTptb2RpZnkAMjAxOS0wNS0zMVQxNzowNDowOCswMTowMATzjEoAAAAASUVORK5CYII="></td>
+      <td align="center">120
+(100%)</td>
+      <td align="center">0
+(0%)</td>
+    </tr>
+    <tr>
+      <td align="center">4</td>
+      <td align="left">spacing
+[integer]</td>
+      <td align="left">Mean (sd) : 10 (3.3)
+min < med < max:
+6 < 10 < 14
+IQR (CV) : 8 (0.3)</td>
+      <td align="left" style="padding:0;vertical-align:middle"><table style="border-collapse:collapse;border:none;margin:0"><tr style="background-color:transparent"><td style="padding:0 0 0 7px;margin:0;border:0" align="right">6</td><td style="padding:0 2px;border:0;" align="left">:</td><td style="padding:0 4px 0 6px;margin:0;border:0" align="right">40</td><td style="padding:0;border:0" align="left">(</td><td style="padding:0 2px;margin:0;border:0" align="right">33.3%</td><td style="padding:0 4px 0 0;border:0" align="left">)</td></tr><tr style="background-color:transparent"><td style="padding:0 0 0 7px;margin:0;border:0" align="right">10</td><td style="padding:0 2px;border:0;" align="left">:</td><td style="padding:0 4px 0 6px;margin:0;border:0" align="right">40</td><td style="padding:0;border:0" align="left">(</td><td style="padding:0 2px;margin:0;border:0" align="right">33.3%</td><td style="padding:0 4px 0 0;border:0" align="left">)</td></tr><tr style="background-color:transparent"><td style="padding:0 0 0 7px;margin:0;border:0" align="right">14</td><td style="padding:0 2px;border:0;" align="left">:</td><td style="padding:0 4px 0 6px;margin:0;border:0" align="right">40</td><td style="padding:0;border:0" align="left">(</td><td style="padding:0 2px;margin:0;border:0" align="right">33.3%</td><td style="padding:0 4px 0 0;border:0" align="left">)</td></tr></table></td>
+      <td align="left" style="vertical-align:middle;padding:0;background-color:transparent"><img style="border:none;background-color:transparent;padding:0" src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAD8AAABQBAMAAABc07BjAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAD1BMVEX////9/v2mpqb39/f///+DdZCQAAAAAnRSTlMAAHaTzTgAAAABYktHRACIBR1IAAAAB3RJTUUH4wUfEgQI6YsxHQAAADtJREFUSMdjYBgcQAkXUIAqUDbGAUYVjCqgjQKCaVIQFxCgn4LRjDOqYMgpGM1ZowpGFZChgGCaHGgAAEZjRwJD4xmXAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDE5LTA1LTMxVDE3OjA0OjA4KzAxOjAwda409gAAACV0RVh0ZGF0ZTptb2RpZnkAMjAxOS0wNS0zMVQxNzowNDowOCswMTowMATzjEoAAAAASUVORK5CYII="></td>
+      <td align="center">120
+(100%)</td>
+      <td align="center">0
+(0%)</td>
+    </tr>
+    <tr>
+      <td align="center">5</td>
+      <td align="left">stock
+[factor]</td>
+      <td align="left">1. M0007
+2. MM106
+3. MM111
+4. Seedling</td>
+      <td align="left" style="padding:0;vertical-align:middle"><table style="border-collapse:collapse;border:none;margin:0"><tr style="background-color:transparent"><td style="padding:0 5px 0 7px;margin:0;border:0" align="right">30</td><td style="padding:0 2px 0 0;border:0;" align="left">(</td><td style="padding:0;border:0" align="right">25.0%</td><td style="padding:0 4px 0 2px;border:0" align="left">)</td></tr><tr style="background-color:transparent"><td style="padding:0 5px 0 7px;margin:0;border:0" align="right">30</td><td style="padding:0 2px 0 0;border:0;" align="left">(</td><td style="padding:0;border:0" align="right">25.0%</td><td style="padding:0 4px 0 2px;border:0" align="left">)</td></tr><tr style="background-color:transparent"><td style="padding:0 5px 0 7px;margin:0;border:0" align="right">30</td><td style="padding:0 2px 0 0;border:0;" align="left">(</td><td style="padding:0;border:0" align="right">25.0%</td><td style="padding:0 4px 0 2px;border:0" align="left">)</td></tr><tr style="background-color:transparent"><td style="padding:0 5px 0 7px;margin:0;border:0" align="right">30</td><td style="padding:0 2px 0 0;border:0;" align="left">(</td><td style="padding:0;border:0" align="right">25.0%</td><td style="padding:0 4px 0 2px;border:0" align="left">)</td></tr></table></td>
+      <td align="left" style="vertical-align:middle;padding:0;background-color:transparent"><img style="border:none;background-color:transparent;padding:0" src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAADIAAABoBAMAAABBBL4TAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAD1BMVEX////9/v2mpqb39/f///+DdZCQAAAAAnRSTlMAAHaTzTgAAAABYktHRACIBR1IAAAAB3RJTUUH4wUfEgQI6YsxHQAAADlJREFUSMdjYKAfUMIEUBllY3RgNCozbGVwpwNBTEATmdGUOCozmhJHZQaPzGhKHJUZHDK40wE9AAB1fT4EmR20agAAACV0RVh0ZGF0ZTpjcmVhdGUAMjAxOS0wNS0zMVQxNzowNDowOCswMTowMHWuNPYAAAAldEVYdGRhdGU6bW9kaWZ5ADIwMTktMDUtMzFUMTc6MDQ6MDgrMDE6MDAE84xKAAAAAElFTkSuQmCC"></td>
+      <td align="center">120
+(100%)</td>
+      <td align="center">0
+(0%)</td>
+    </tr>
+    <tr>
+      <td align="center">6</td>
+      <td align="left">gen
+[factor]</td>
+      <td align="left">1. Golden
+2. Redspur</td>
+      <td align="left" style="padding:0;vertical-align:middle"><table style="border-collapse:collapse;border:none;margin:0"><tr style="background-color:transparent"><td style="padding:0 5px 0 7px;margin:0;border:0" align="right">60</td><td style="padding:0 2px 0 0;border:0;" align="left">(</td><td style="padding:0;border:0" align="right">50.0%</td><td style="padding:0 4px 0 2px;border:0" align="left">)</td></tr><tr style="background-color:transparent"><td style="padding:0 5px 0 7px;margin:0;border:0" align="right">60</td><td style="padding:0 2px 0 0;border:0;" align="left">(</td><td style="padding:0;border:0" align="right">50.0%</td><td style="padding:0 4px 0 2px;border:0" align="left">)</td></tr></table></td>
+      <td align="left" style="vertical-align:middle;padding:0;background-color:transparent"><img style="border:none;background-color:transparent;padding:0" src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAFcAAAA4BAMAAAB6RHnQAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAD1BMVEX////9/v2mpqb39/f///+DdZCQAAAAAnRSTlMAAHaTzTgAAAABYktHRACIBR1IAAAAB3RJTUUH4wUfEgQI6YsxHQAAADdJREFUSMdjYBiaQIkYoABVrGxMBBhVPKp4VDHNFJOUYQWJAQKDS/FoiTSqeFTxEFJMUoYdagAAvkZHpEhk7T0AAAAldEVYdGRhdGU6Y3JlYXRlADIwMTktMDUtMzFUMTc6MDQ6MDgrMDE6MDB1rjT2AAAAJXRFWHRkYXRlOm1vZGlmeQAyMDE5LTA1LTMxVDE3OjA0OjA4KzAxOjAwBPOMSgAAAABJRU5ErkJggg=="></td>
+      <td align="center">120
+(100%)</td>
+      <td align="center">0
+(0%)</td>
+    </tr>
+    <tr>
+      <td align="center">7</td>
+      <td align="left">yield
+[numeric]</td>
+      <td align="left">Mean (sd) : 145.4 (47.5)
+min < med < max:
+64.1 < 147.1 < 282.3
+IQR (CV) : 68.3 (0.3)</td>
+      <td align="left" style="vertical-align:middle">85 distinct values</td>
+      <td align="left" style="vertical-align:middle;padding:0;background-color:transparent"><img style="border:none;background-color:transparent;padding:0" src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAJgAAABuBAMAAAApJ8cWAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAD1BMVEX////9/v2mpqby8vL///8shn5hAAAAAnRSTlMAAHaTzTgAAAABYktHRACIBR1IAAAAB3RJTUUH4wUfEgQI6YsxHQAAAKdJREFUaN7t2V0KgCAQRlG3UDtId1D731s0BgaW2TigxP0efFA8COIP6hzRZLqPlyxTZcpY2I6AgYGNg82yxK0wYcCGwOLmbYRJuYKBgfXF4obtjTABVrAO2GUe27GQGLDhsIqjuB7b3scHpsZ8ug+3Y3kvMDAwMLBOWPEo/ooVxwcGBjYCln9jNGCxEawH9vBWrcMujWC/w85nMiMsVoOpMW8SRzTZAd3riipUk8GnAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDE5LTA1LTMxVDE3OjA0OjA4KzAxOjAwda409gAAACV0RVh0ZGF0ZTptb2RpZnkAMjAxOS0wNS0zMVQxNzowNDowOCswMTowMATzjEoAAAAASUVORK5CYII="></td>
+      <td align="center">92
+(76.67%)</td>
+      <td align="center">28
+(23.33%)</td>
+    </tr>
+    <tr>
+      <td align="center">8</td>
+      <td align="left">trt
+[integer]</td>
+      <td align="left">Mean (sd) : 1036.5 (329.4)
+min < med < max:
+601 < 1036.5 < 1472
+IQR (CV) : 735.5 (0.3)</td>
+      <td align="left" style="vertical-align:middle">24 distinct values</td>
+      <td align="left" style="vertical-align:middle;padding:0;background-color:transparent"><img style="border:none;background-color:transparent;padding:0" src="data:image/png;base64, iVBORw0KGgoAAAANSUhEUgAAAJgAAABuBAMAAAApJ8cWAAAABGdBTUEAALGPC/xhBQAAACBjSFJNAAB6JgAAgIQAAPoAAACA6AAAdTAAAOpgAAA6mAAAF3CculE8AAAAD1BMVEX////9/v2mpqby8vL///8shn5hAAAAAnRSTlMAAHaTzTgAAAABYktHRACIBR1IAAAAB3RJTUUH4wUfEgQI6YsxHQAAAFlJREFUaN7tzKEVwCAQRMFrIekgpAPov7cIDgeGh4iYb/ftRGinkj3XtDHP13vMib2tt8ByrgsszxUGg8FgMBgMBoPBYDAYDAaDwWAwGAwGg8Fgf8TKkUI7fb6sGL0eOKvTAAAAJXRFWHRkYXRlOmNyZWF0ZQAyMDE5LTA1LTMxVDE3OjA0OjA4KzAxOjAwda409gAAACV0RVh0ZGF0ZTptb2RpZnkAMjAxOS0wNS0zMVQxNzowNDowOCswMTowMATzjEoAAAAASUVORK5CYII="></td>
+      <td align="center">120
+(100%)</td>
+      <td align="center">0
+(0%)</td>
+    </tr>
+  </tbody>
+</table>
+<p>Generated by <a href='https://github.com/dcomtois/summarytools'>summarytools</a> 0.9.3 (<a href='https://www.r-project.org/'>R</a> version 3.6.0)<br/>2019-05-31</p>
+</div>
+<p>So do apples that are closer together have lower yield? There are only 3 spacing values so we’ll convert it to a categorical variable using as.factor.</p>
+<pre class="r"><code>apples$spacing2 &lt;- as.factor(apples$spacing)
+
+ggplot(apples, aes(spacing2, yield)) +
+    geom_boxplot() +
+    labs(x = &quot;Spacing (m)&quot;, y = &quot;Yield (kg)&quot;)</code></pre>
+<p><img src="/tutorial/r-club/ANOVA_0318_files/figure-html/apples%20spacing-1.png" width="672" /></p>
+<p>Within R lm and aov give the same result with a single categorical predictor only difference is output of summary functions, which can be changed using summary.lm and summary.aov</p>
+<p>now run linear model with lm to see if difference is statistically significant</p>
+<pre class="r"><code>apples.m &lt;- lm(yield ~ spacing2, data = apples)
+summary(apples.m)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = yield ~ spacing2, data = apples)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -92.389 -30.577  -3.516  33.192 117.628 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  120.566      7.382  16.332  &lt; 2e-16 ***
+## spacing210    35.924     11.073   3.244 0.001659 ** 
+## spacing214    44.107     10.966   4.022 0.000121 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 43.67 on 89 degrees of freedom
+##   (28 observations deleted due to missingness)
+## Multiple R-squared:  0.1742, Adjusted R-squared:  0.1556 
+## F-statistic: 9.385 on 2 and 89 DF,  p-value: 0.0002003</code></pre>
+<p>output gives the difference between the 10m spacing and the 6m spacing, and the 14m spacing and the 6m spacing. The 6m spacing is given by the intercept</p>
+<p>use plots to examine residuals.</p>
+<pre class="r"><code>par(mfrow=c(2,2));plot(apples.m);par(mfrow=c(1,1)) </code></pre>
+<p><img src="/tutorial/r-club/ANOVA_0318_files/figure-html/apples%20diagnostics-1.png" width="672" /></p>
+<pre class="r"><code>qqp(apples.m)</code></pre>
+<p><img src="/tutorial/r-club/ANOVA_0318_files/figure-html/apples%20diagnostics-2.png" width="672" /></p>
+<pre><code>## [1] 10 84</code></pre>
+<p>If wish to do a Tukey’s HSD post-hoc test then need to fit model with aov rather than lm</p>
+<pre class="r"><code>apples.aov &lt;- aov(yield ~ spacing2, data = apples)
+summary(apples.aov)</code></pre>
+<pre><code>##             Df Sum Sq Mean Sq F value Pr(&gt;F)    
+## spacing2     2  35801   17900   9.385  2e-04 ***
+## Residuals   89 169750    1907                   
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 28 observations deleted due to missingness</code></pre>
+<pre class="r"><code>summary(apples.m) # compare to lm output - different format but same numbers</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = yield ~ spacing2, data = apples)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -92.389 -30.577  -3.516  33.192 117.628 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  120.566      7.382  16.332  &lt; 2e-16 ***
+## spacing210    35.924     11.073   3.244 0.001659 ** 
+## spacing214    44.107     10.966   4.022 0.000121 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 43.67 on 89 degrees of freedom
+##   (28 observations deleted due to missingness)
+## Multiple R-squared:  0.1742, Adjusted R-squared:  0.1556 
+## F-statistic: 9.385 on 2 and 89 DF,  p-value: 0.0002003</code></pre>
+<pre class="r"><code>summary.lm(apples.aov) # can get equivalent output to lm using summary.lm</code></pre>
+<pre><code>## 
+## Call:
+## aov(formula = yield ~ spacing2, data = apples)
+## 
+## Residuals:
+##     Min      1Q  Median      3Q     Max 
+## -92.389 -30.577  -3.516  33.192 117.628 
+## 
+## Coefficients:
+##             Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)  120.566      7.382  16.332  &lt; 2e-16 ***
+## spacing210    35.924     11.073   3.244 0.001659 ** 
+## spacing214    44.107     10.966   4.022 0.000121 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 43.67 on 89 degrees of freedom
+##   (28 observations deleted due to missingness)
+## Multiple R-squared:  0.1742, Adjusted R-squared:  0.1556 
+## F-statistic: 9.385 on 2 and 89 DF,  p-value: 0.0002003</code></pre>
+<pre class="r"><code>TukeyHSD(apples.aov)</code></pre>
+<pre><code>##   Tukey multiple comparisons of means
+##     95% family-wise confidence level
+## 
+## Fit: aov(formula = yield ~ spacing2, data = apples)
+## 
+## $spacing2
+##            diff        lwr      upr     p adj
+## 10-6  35.923571   9.530402 62.31674 0.0046832
+## 14-6  44.106700  17.967561 70.24584 0.0003526
+## 14-10  8.183128 -19.396838 35.76309 0.7598733</code></pre>
+<div id="anova-with-unbalanced-designs-and-1-predictor" class="section level3">
+<h3>ANOVA with unbalanced designs and &gt; 1 predictor</h3>
+<p>Balanced designs have the same number of reps per treatment. This is often not the case, and the study is unbalanced. If the study is unbalanced the way in which predictors are evaluated impacts the result. The different ways of evaluating predictors are known as Type I, Type II and Type III ANOVAs</p>
+<p>To find out more about this go to <a href="http://goanna.cs.rmit.edu.au/~fscholer/anova.php" class="uri">http://goanna.cs.rmit.edu.au/~fscholer/anova.php</a></p>
+<p>For type III tests to be correct need to change the way R codes factors</p>
+<pre class="r"><code>options(contrasts = c(&quot;contr.sum&quot;, &quot;contr.poly&quot;)) </code></pre>
+<p>This won’t change type I or II
+Default is: options(contrasts = c(“contr.treatment”, “contr.poly”))</p>
+<pre class="r"><code>A        = c(&quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;)
+B        = c(&quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;x&quot;, &quot;x&quot;, &quot;x&quot;)
+C        = c(&quot;l&quot;, &quot;l&quot;, &quot;m&quot;, &quot;m&quot;, &quot;l&quot;, &quot;l&quot;, &quot;m&quot;, &quot;m&quot;, &quot;l&quot;, &quot;l&quot;, &quot;l&quot;, &quot;l&quot;)
+response = c( 14,  30,  15,  35,  50,  51,  30,  32,  51,  55,  53,  55)</code></pre>
+<pre class="r"><code>model = lm(response ~ A + B + C + A:B + A:C + B:C)
+
+anova(model)              # Type I tests</code></pre>
+<pre><code>## Analysis of Variance Table
+## 
+## Response: response
+##           Df  Sum Sq Mean Sq  F value    Pr(&gt;F)    
+## A          1 1488.37 1488.37 357.6869 7.614e-06 ***
+## B          1   18.22   18.22   4.3798 0.0905765 .  
+## C          1  390.15  390.15  93.7610 0.0001995 ***
+## A:B        1  278.68  278.68  66.9722 0.0004431 ***
+## A:C        1  339.51  339.51  81.5909 0.0002778 ***
+## B:C        1    8.51    8.51   2.0444 0.2121592    
+## Residuals  5   20.81    4.16                       
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code>Anova(model, type=&quot;II&quot;)   # Type II tests using car package</code></pre>
+<pre><code>## Anova Table (Type II tests)
+## 
+## Response: response
+##            Sum Sq Df  F value    Pr(&gt;F)    
+## A         1022.01  1 245.6103 1.923e-05 ***
+## B          131.25  1  31.5421 0.0024764 ** 
+## C          278.68  1  66.9722 0.0004431 ***
+## A:B        180.01  1  43.2593 0.0012194 ** 
+## A:C        321.01  1  77.1445 0.0003174 ***
+## B:C          8.51  1   2.0444 0.2121592    
+## Residuals   20.81  5                       
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<pre class="r"><code>Anova(model, type=&quot;III&quot;)  # Type III tests using car package</code></pre>
+<pre><code>## Anova Table (Type III tests)
+## 
+## Response: response
+##             Sum Sq Df   F value    Pr(&gt;F)    
+## (Intercept) 9490.0  1 2280.6425 7.605e-08 ***
+## A            724.5  1  174.1138 4.465e-05 ***
+## B            184.5  1   44.3408 0.0011526 ** 
+## C            180.0  1   43.2593 0.0012194 ** 
+## A:B          180.0  1   43.2593 0.0012194 ** 
+## A:C          321.0  1   77.1445 0.0003174 ***
+## B:C            8.5  1    2.0444 0.2121592    
+## Residuals     20.8  5                        
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<p>Balanced design shows no difference between type I, II and III</p>
+<pre class="r"><code>A        = c(&quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;a&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;, &quot;b&quot;)
+B        = c(&quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;, &quot;x&quot;, &quot;y&quot;)
+C        = c(&quot;l&quot;, &quot;l&quot;, &quot;m&quot;, &quot;m&quot;, &quot;l&quot;, &quot;l&quot;, &quot;m&quot;, &quot;m&quot;, &quot;l&quot;, &quot;l&quot;, &quot;m&quot;, &quot;m&quot;)
+response = c( 14,  30,  15,  35,  50,  51,  30,  32,  51,  55,  53,  55)</code></pre>
+<pre class="r"><code>model = lm(response ~ A + B + C + A:B + A:C + B:C)
+
+anova(model)              # Type I tests</code></pre>
+<pre><code>## Analysis of Variance Table
+## 
+## Response: response
+##           Df  Sum Sq Mean Sq F value Pr(&gt;F)
+## A          1  546.75  546.75  1.9146 0.2250
+## B          1  168.75  168.75  0.5909 0.4768
+## C          1  315.38  315.38  1.1044 0.3414
+## A:B        1   70.08   70.08  0.2454 0.6413
+## A:C        1    0.38    0.38  0.0013 0.9725
+## B:C        1   15.04   15.04  0.0527 0.8276
+## Residuals  5 1427.87  285.57</code></pre>
+<pre class="r"><code>Anova(model, type=&quot;II&quot;)   # Type II tests</code></pre>
+<pre><code>## Anova Table (Type II tests)
+## 
+## Response: response
+##            Sum Sq Df F value Pr(&gt;F)
+## A          782.04  1  2.7385 0.1589
+## B          168.75  1  0.5909 0.4768
+## C          315.38  1  1.1044 0.3414
+## A:B         84.37  1  0.2955 0.6101
+## A:C          0.38  1  0.0013 0.9725
+## B:C         15.04  1  0.0527 0.8276
+## Residuals 1427.87  5</code></pre>
+<pre class="r"><code>Anova(model, type=&quot;III&quot;)  # Type III tests </code></pre>
+<pre><code>## Anova Table (Type III tests)
+## 
+## Response: response
+##              Sum Sq Df F value    Pr(&gt;F)    
+## (Intercept) 16380.4  1 57.3593 0.0006367 ***
+## A             782.0  1  2.7385 0.1588624    
+## B             168.7  1  0.5909 0.4767865    
+## C             315.4  1  1.1044 0.3414277    
+## A:B            84.4  1  0.2955 0.6100929    
+## A:C             0.4  1  0.0013 0.9724954    
+## B:C            15.0  1  0.0527 0.8275710    
+## Residuals    1427.9  5                      
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1</code></pre>
+<p>The choice between the types of ANOVAs is beyond the scope of this R club and is hypothesis dependent.</p>
+</div>

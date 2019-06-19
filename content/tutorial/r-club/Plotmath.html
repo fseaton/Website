@@ -1,0 +1,52 @@
+---
+title: Plotmath - how to get scientific notation on plots
+author: Fiona Seaton
+date: 2018-11-20
+
+draft: false
+type: docs
+
+linktitle: Plotmath
+menu:
+  r-club:
+    parent: Plotting
+    weight: 15
+---
+
+
+
+<p>This is a quick section on how to get weird symbols onto your plot labels, mainly because I want to write the rules down somewhere before I forget. R has built in functionality to put all sorts of weird mathematical expressions on plots, see the help page for plotmath for a long list of things that are possible. I’m using expression to create the labels because it seems to be the simplest option I’ve found so far.</p>
+<table>
+<thead>
+<tr class="header">
+<th align="left">Character</th>
+<th align="left">Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">~</td>
+<td align="left">separate with a space</td>
+</tr>
+<tr class="even">
+<td align="left">*</td>
+<td align="left">put next to each other with no space</td>
+</tr>
+<tr class="odd">
+<td align="left">^</td>
+<td align="left">put the next bit in superscript</td>
+</tr>
+<tr class="even">
+<td align="left">[]</td>
+<td align="left">put the bit in brackets in subscript</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>plot(cars, xlab = expression(&quot;Speed (hr&quot;^-1*&quot;)&quot;), 
+     ylab = expression(bold(Distance[30])~&quot;(ft)&quot;))</code></pre>
+<p><img src="/tutorial/r-club/Plotmath_files/figure-html/plot%20super%20and%20sub-1.png" width="672" /></p>
+<pre class="r"><code>par(mar = c(5,5,4,2) + 0.1)
+plot(cars, xlab = expression(pi~and~tilde(20)*degree), 
+     ylab = expression(infinity%down%N[2]*O-N))</code></pre>
+<p><img src="/tutorial/r-club/Plotmath_files/figure-html/plotmath%202-1.png" width="672" /></p>
+You can also reference unicode symbols directly, but not all are supported. I’m using "
