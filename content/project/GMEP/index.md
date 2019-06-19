@@ -44,3 +44,4 @@ url_custom = [{icon_pack = "fab", name="Project website", url = "https://gmep.wa
   focal_point = "Smart"
 +++
 
+The Glastir Monitoring and Evaluation Programme was a project funded by the Welsh Government in order to take stock of the Welsh countryside and examine how the Welsh agri-environment scheme was performing. There was a national-scale field survey that took place over the summers of 2013-16, along with various modelling efforts. A full description of the project, its findings and reports are on its [website](https://gmep.wales/).

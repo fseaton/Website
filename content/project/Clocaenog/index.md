@@ -44,3 +44,4 @@ url_custom = [{name="Clocaenog website", url = "https://www.ceh.ac.uk/our-scienc
   focal_point = "Smart"
 +++
 
+The Climoor long term climate in Clocaenog, NE Wales, has been running for 20 years. There are summer drought and night-time warming treatments, provided by a retractable roof design, along with control plots. The site is dominated by a heather community over a shallow carbon-rich soil, that experiences very high annual rainfall. There have been many changes in the soil hydrology and physico-chemical properties relating to the treatments, with some small shifts in the plant community. The Centre for Ecology website has more information and a list of the over 60 publications from this site on its [dedicated webpage](https://www.ceh.ac.uk/our-science/monitoring-site/experimental-sites-uplands-monitoring-and-soil-research). 
