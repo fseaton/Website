@@ -41,7 +41,8 @@ plot(cars, xlab = expression(pi~and~tilde(20)*degree),
      ylab = expression(infinity%down%N[2]*O-N))
 ```
 
-You can also reference unicode symbols directly, but not all are supported. I'm using "\u2030" here to show the per mille symbol.
+You can also reference unicode symbols directly, but not all are supported. I'm using "\\u2030" here to show the per mille symbol.
+
 ```{r plotmath 3}
 par(mar = c(5,5,4,2) + 0.1)
 plot(cars, 
