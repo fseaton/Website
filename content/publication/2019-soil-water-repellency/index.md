@@ -12,7 +12,7 @@ authors:
 - David A. Robinson
 date: "2019-07-05"
 doi: "10.1016/J.SCITOTENV.2019.06.052"
-featured: false
+featured: true
 image:
   caption: ''
   focal_point: ""
@@ -22,7 +22,7 @@ publication: 'Science of the Total Environment (accepted)'
 publication_short: ""
 publication_types:
 - "2"
-publishDate: ""
+publishDate: "2019-06-05"
 slides: ""
 summary: Surface soil water repellency is related to the ecological communities at a site.
 tags:
