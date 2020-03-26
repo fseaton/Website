@@ -18,7 +18,7 @@ image:
   focal_point: ""
   preview_only: false
 projects: ['GMEP']
-publication: 'Science of the Total Environment (accepted)'
+publication: 'Science of the Total Environment'
 publication_short: ""
 publication_types:
 - "2"
