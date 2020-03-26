@@ -64,5 +64,5 @@ subtitle = ""
 +++
 
 {{% alert note %}}
-Other publications available by [filtering publications]({{< ref "/publication/_index.md" >}}).
+Other publications available [here]({{< ref "/publication/_index.md" >}}).
 {{% /alert %}}

@@ -34,7 +34,7 @@ publication_types:
 - "2"
 publishDate: "2020-03-11"
 slides: ""
-summary: We present topsoil physicochemical properties from ~1350 sites across Wales, showing a strong gradient in carbon and pH and identifying topsoil health classes.
+summary: We present topsoil physicochemical properties from ~1350 sites across Wales and identify soil health classes.
 tags:
 - soil health
 - Soil structure
