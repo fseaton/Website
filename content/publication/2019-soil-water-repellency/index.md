@@ -31,7 +31,7 @@ tags:
 - Soil water repellency
 title: Plant and soil communities are associated with the response of soil water repellency to environmental stress
 url_code: ""
-url_dataset: ""
+url_dataset: "/publication/2019-gmep-topsoil-physicochemical-data/"
 url_pdf: ""
 url_poster: ""
 url_project: ""

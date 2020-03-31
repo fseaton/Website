@@ -41,5 +41,4 @@ url_source: ""
 url_video: ""
 ---
 
-
-
+Sequence data for this paper can be found on the European Nucleotide Archive, under project numbers [PRJEB27883](https://www.ebi.ac.uk/ena/data/search?query=PRJEB27883) for 16S, [PRJEB28028](https://www.ebi.ac.uk/ena/data/search?query=PRJEB28028) for ITS1 and [PRJEB28067](https://www.ebi.ac.uk/ena/data/search?query=PRJEB28067) for 18S. Soil physicochemical data is published online at the Environmental Information Data Centre, more information [here](/publication/2019-gmep-topsoil-physicochemical-data/).

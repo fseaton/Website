@@ -40,7 +40,7 @@ tags:
 - Soil structure
 title: Soil health cluster analysis based on national monitoring of soil indicators
 url_code: ""
-url_dataset: ""
+url_dataset: "/publication/2019-gmep-topsoil-physicochemical-data/"
 url_pdf: ""
 url_poster: ""
 url_project: ""
