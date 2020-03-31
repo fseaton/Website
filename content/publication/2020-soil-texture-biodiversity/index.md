@@ -26,7 +26,7 @@ tags:
 - Microbial communities
 - Soil structure
 title: Soil textural heterogeneity impacts bacterial but not fungal diversity
-url_code: ""
+url_code: "https://github.com/fseaton/Particle-Size"
 url_dataset: ""
 url_pdf: ""
 url_poster: ""
