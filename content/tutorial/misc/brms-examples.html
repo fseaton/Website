@@ -1,0 +1,379 @@
+---
+title: Stan and BRMS introduction
+author: Fiona Seaton
+date: 2020-07-02
+output: html_document
+
+draft: false
+toc: false
+type: docs
+
+linktitle: Stan and brms
+menu:
+  misc:
+    weight: 5
+---
+
+
+
+<div id="stan-overview" class="section level2">
+<h2>stan overview</h2>
+<p>Stan is a platform used for Bayesian modelling. Unlike JAGS and BUGS the underlying MCMC algorithm is Hamiltonian - meaning it uses gradients rather than steps. Stan uses a variant of a No-U-Turn Sampler (NUTS) to explore the target parameter space and return the model output.</p>
+<p>In practice, this means:</p>
+<ul>
+<li>Better at exploring the model space</li>
+<li>More likely to find issues with the model parameterisation</li>
+<li>Quicker than JAGS/BUGS with more complex models</li>
+<li>LOADS of <a href="https://mc-stan.org/misc/warnings.html">diagnostics</a></li>
+</ul>
+<p>Stan can be interfaced to from various software, the most commonly used and well supported is R but there are also options to interface from python or the command line. Within R there is the rstan package which does the direct interfacing with stan (along with StanHeaders), but there are also many helper packages for fitting stan models including rstanarm and brms.</p>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/stan%20software%20ecosystem-1.png" width="672" /></p>
+<p>There are also several other packages in R that work with stan models, such as bayesplot, loo, shinystan etc.</p>
+<p>Both rstanarm and brms use formula notation in the style of lme4 in order to specify stan models. The main difference in between the two packages is that rstanarm has all of their models pre-specified and compiled into stan code while brms writes and compiles a new stan model each time. This means rstanarm can be a lot quicker than brms, but brms supports a wider range of model types. I use brms exclusively as I am a creature of habit and learnt it first, so that is what I will present here.</p>
+</div>
+<div id="installation" class="section level1">
+<h1>Installation</h1>
+<p>A guide to installing rstan can be found online <a href="https://github.com/stan-dev/rstan/wiki/RStan-Getting-Started">here</a>, it is now much easier than it used to be - just install off CRAN as standard. It will take a few minutes, and afterwards you need to check whether your C++ toolchain is correctly set up using pkgbuild. Their github page also gives an optional step to configure the toolchain.</p>
+<pre class="r"><code>install.packages(&quot;rstan&quot;)
+
+# check toolchain
+pkgbuild::has_build_tools(debug = TRUE)
+
+# Optional - configure toolchain
+dotR &lt;- file.path(Sys.getenv(&quot;HOME&quot;), &quot;.R&quot;)
+if (!file.exists(dotR)) dir.create(dotR)
+M &lt;- file.path(dotR, ifelse(.Platform$OS.type == &quot;windows&quot;, &quot;Makevars.win&quot;, &quot;Makevars&quot;))
+if (!file.exists(M)) file.create(M)
+cat(&quot;\nCXX14FLAGS=-O3 -march=native -mtune=native&quot;,
+    if( grepl(&quot;^darwin&quot;, R.version$os)) &quot;CXX14FLAGS += -arch x86_64 -ftemplate-depth-256&quot; else 
+    if (.Platform$OS.type == &quot;windows&quot;) &quot;CXX11FLAGS=-O3 -march=corei7 -mtune=corei7&quot; else
+    &quot;CXX14FLAGS += -fPIC&quot;,
+    file = M, sep = &quot;\n&quot;, append = TRUE)</code></pre>
+<p>Other packages that rely on rstan can be installed from CRAN/github as usual, I won’t go into the details here.</p>
+<pre class="r"><code>library(brms)
+library(dplyr)
+library(ggplot2)
+theme_set(theme_classic())</code></pre>
+</div>
+<div id="simple-model-example" class="section level1">
+<h1>Simple model example</h1>
+<p>I’m going to start by running a very simple mixed model here in order to demonstrate how easy fitting a model with brms can be. All the data here is from the agridat package, which is a package that holds several agricultural related datasets.</p>
+<pre class="r"><code>library(agridat)
+dat &lt;- ilri.sheep
+ggplot(dat, aes(x = gen, y = weanwt)) +
+  geom_boxplot()</code></pre>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/get%20and%20plot%20data-1.png" width="672" /></p>
+<p>The brms model for this (with default priors, i.e. this is not a recommended workflow!):</p>
+<pre class="r"><code>mod1 &lt;- brm(weanwt ~ gen - 1 + (1|ewe) + (1|ram), data = ilri.sheep, cores = 4)</code></pre>
+<pre class="r"><code>summary(mod1)</code></pre>
+<pre><code>##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: weanwt ~ gen - 1 + (1 | ewe) + (1 | ram) 
+##    Data: ilri.sheep (Number of observations: 700) 
+## Samples: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup samples = 4000
+## 
+## Group-Level Effects: 
+## ~ewe (Number of levels: 358) 
+##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sd(Intercept)     1.16      0.18     0.77     1.49 1.01      585      669
+## 
+## ~ram (Number of levels: 74) 
+##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sd(Intercept)     0.78      0.17     0.45     1.12 1.00     1080     1696
+## 
+## Population-Level Effects: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## genDD    11.62      0.23    11.15    12.07 1.00     2585     3083
+## genDR    10.61      0.31    10.01    11.23 1.00     3002     2905
+## genRD    11.70      0.24    11.24    12.19 1.00     2213     2992
+## genRR     9.82      0.26     9.29    10.34 1.00     2249     2310
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     2.29      0.10     2.12     2.49 1.00      746     1086
+## 
+## Samples were drawn using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
+<pre class="r"><code>plot(mod1, ask = FALSE, N = 4)</code></pre>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/brms%20simple%20model%20plots-1.png" width="672" /><img src="/tutorial/misc/brms-examples_files/figure-html/brms%20simple%20model%20plots-2.png" width="672" /></p>
+</div>
+<div id="example-suggested-workflow" class="section level1">
+<h1>Example suggested workflow</h1>
+<p>When using these methods it is suggested that you think more about the prior assumptions that you are putting into the model. Several people within the stan community are now advocating a model building approach that follows several steps. I’m going to give a quick outline of the kind of steps that I follow when building models.</p>
+<p>First, prior predictive checks. Here we take the model structure and priors we are suggesting and evaluate the data structure that is implied by these priors.</p>
+<p>Binomial data - Phytophtera disease occurrence in a pepper field.</p>
+<pre class="r"><code>dat &lt;- gumpertz.pepper %&gt;%
+  mutate(disease = recode(disease, &quot;Y&quot; = 1, &quot;N&quot; = 0))
+ggplot(dat, aes(x = leaf, y = disease, colour = water)) + geom_jitter()</code></pre>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/unnamed-chunk-1-1.png" width="672" /></p>
+<p>First, define the model and find out what priors are automatically given by brms.</p>
+<pre class="r"><code>get_prior(y ~ trt - 1 + (1|block), data = beall.webworms,
+          family = poisson)</code></pre>
+<pre><code>##                  prior class      coef group resp dpar nlpar bound
+## 1                          b                                      
+## 2                          b     trtT1                            
+## 3                          b     trtT2                            
+## 4                          b     trtT3                            
+## 5                          b     trtT4                            
+## 6 student_t(3, 0, 2.5)    sd                                      
+## 7                         sd           block                      
+## 8                         sd Intercept block</code></pre>
+<p>So we can see that the default is to have a student T prior on the intercept and random effect. Let’s put a wide prior on b</p>
+<pre class="r"><code>pr &lt;- prior(normal(0,10), class = &quot;b&quot;)</code></pre>
+<p>Now check by sampling the prior what kind of data this suggests:</p>
+<pre class="r"><code>mod_pr &lt;- brm(y ~ trt - 1 + (1|block), data = beall.webworms,
+              family = poisson, prior = pr,
+              cores = 4, sample_prior = &quot;only&quot;)</code></pre>
+<p>There is handy function within stan that allows you to see what the data suggested by the model looks like - pp_check. I will discuss this more later when we come to posterior checks but the default plots the density of the data and the model predicted data. You can also use plot(conditional_effects(<mod>)) to plot the predicted effects of the treatments.</p>
+<pre class="r"><code>pp_check(mod_pr)</code></pre>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/unnamed-chunk-5-1.png" width="672" /></p>
+<pre class="r"><code>plot(conditional_effects(mod_pr))</code></pre>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/unnamed-chunk-5-2.png" width="672" /></p>
+<p>These plots show that our prior suggests that having counts of millions/billions is a possible outcome, which both seems unreasonable and could lead to issues with model convergence as the model fitting process has to explore these unlikely regions of model space. We can try this with tighter priors and see if it makes the model more sensible.</p>
+<pre class="r"><code>pr &lt;- prior(normal(0,.5), class = &quot;b&quot;) +
+  prior(student_t(3,0,1), class = &quot;sd&quot;) +
+  prior(student_t(3,0,1), class = &quot;Intercept&quot;)</code></pre>
+<p>Now check by sampling the prior what kind of data this suggests</p>
+<pre class="r"><code>mod_pr &lt;- update(mod_pr, prior = pr, cores = 4, sample_prior = &quot;only&quot;)</code></pre>
+<pre class="r"><code>pp_check(mod_pr)</code></pre>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/unnamed-chunk-8-1.png" width="672" /></p>
+<p>This prior seems really tight but actually allows for pretty high counts.
+Now we can run the model with data:</p>
+<pre class="r"><code>mod_p &lt;- update(mod_pr, sample_prior = &quot;no&quot;, cores = 4)</code></pre>
+<div id="model-checks" class="section level2">
+<h2>Model checks!</h2>
+<p>Statistics are printed by summary</p>
+<pre class="r"><code>summary(mod_p)</code></pre>
+<pre><code>##  Family: poisson 
+##   Links: mu = log 
+## Formula: y ~ trt - 1 + (1 | block) 
+##    Data: beall.webworms (Number of observations: 1300) 
+## Samples: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup samples = 4000
+## 
+## Group-Level Effects: 
+## ~block (Number of levels: 13) 
+##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sd(Intercept)     0.39      0.10     0.24     0.63 1.00      686     1051
+## 
+## Population-Level Effects: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## trtT1     0.34      0.11     0.14     0.56 1.00      767      966
+## trtT2    -0.67      0.12    -0.90    -0.41 1.00      917     1081
+## trtT3    -0.15      0.11    -0.37     0.09 1.00      829     1084
+## trtT4    -0.86      0.13    -1.10    -0.59 1.00      946     1155
+## 
+## Samples were drawn using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
+<p>Plot the variables to see the traceplots</p>
+<pre class="r"><code>plot(mod_p)</code></pre>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/unnamed-chunk-11-1.png" width="672" /></p>
+<p>Alternatively, plot the rank overlay for the chains</p>
+<pre class="r"><code>mcmc_plot(mod_p, type = &quot;rank_overlay&quot;)</code></pre>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/unnamed-chunk-12-1.png" width="672" /></p>
+<p>Now we can look at how well the model predicted the data using posterior predictive checks:</p>
+<pre class="r"><code>pp_check(mod_p)</code></pre>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/unnamed-chunk-13-1.png" width="672" /></p>
+<p>There are other types of posterior predictive checks supported by pp_check, described further in the documentation.</p>
+<p>To examine what the model estimates the effect of treatment to be upon worm count we can plot the predicted response for the different predictors.</p>
+<pre class="r"><code>fixef(mod_p)</code></pre>
+<pre><code>##         Estimate Est.Error       Q2.5       Q97.5
+## trtT1  0.3383876 0.1086578  0.1363769  0.56392432
+## trtT2 -0.6658319 0.1235601 -0.8990215 -0.41407681
+## trtT3 -0.1534075 0.1145232 -0.3690580  0.08595225
+## trtT4 -0.8588937 0.1268969 -1.1013487 -0.59478242</code></pre>
+<pre class="r"><code>plot(conditional_effects(mod_p))</code></pre>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/unnamed-chunk-14-1.png" width="672" /></p>
+</div>
+</div>
+<div id="errors" class="section level1">
+<h1>Errors</h1>
+<p>Stan returns many more potential errors and warnings than other MCMC software, in part because the fine-tuning of the NUTS algorithm offers more opportunities to pick up on issues with the exploration of model space. A full description of the different warnings is at <a href="https://mc-stan.org/misc/warnings.html" class="uri">https://mc-stan.org/misc/warnings.html</a> but here’s a quick summary of the ones I’ve commonly run into:</p>
+<ul>
+<li>divergent transitions - the warning message will recommend increasing adapt_delta which may work, if not then the model structure needs to change</li>
+<li>maximum treedepth exceeded - the warning message will recommend increasing max_treedepth (this is an efficiency concern, not a validity concern)</li>
+<li>Rhat - will return a warning if above 1.05. Note that stan now uses a more robust rhat so this will pick up on issues where the old version may not have.</li>
+<li>Effective sample size warnings for the bulk and tail of the distribution, will suggest running for more iterations but I’ve mostly run across these when chains haven’t fully converged so fix that first</li>
+</ul>
+</div>
+<div id="more-complicated-models" class="section level1">
+<h1>More complicated models</h1>
+<p>The above are quite simple examples, but brms can support many other types of model including those with missing data, censoring, multiple responses or non-linear models.</p>
+<div id="multivariate-models" class="section level2">
+<h2>Multivariate models</h2>
+<p>Modelling multiple response variables within brms can be done in one of two ways, if you have both response variables being predicted by the same predictors and having the same family you can use mvbind() to combine the two. Otherwise, you have to specify each formula within a bf() function then combine them together in the brm call. Fitting multiple models together allows you to model correlation between response variables and use information criteria or cross-validation upon the entire model.</p>
+<pre class="r"><code>dat &lt;- australia.soybean %&gt;%
+  mutate(YR = as.factor(year)) %&gt;%
+  mutate_if(is.numeric, scale) %&gt;%
+  na.omit()
+
+pr &lt;- c(prior(normal(0,1), class = &quot;b&quot;, resp = &quot;protein&quot;),
+        prior(normal(0,1), class = &quot;b&quot;, resp = &quot;oil&quot;))
+
+mod_mv &lt;- brm(mvbind(protein,oil) ~ year*loc, 
+              data = dat, prior = pr, cores = 4)
+summary(mod_mv)</code></pre>
+<pre><code>##  Family: MV(gaussian, gaussian) 
+##   Links: mu = identity; sigma = identity
+##          mu = identity; sigma = identity 
+## Formula: protein ~ year * loc 
+##          oil ~ year * loc 
+##    Data: dat (Number of observations: 464) 
+## Samples: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup samples = 4000
+## 
+## Population-Level Effects: 
+##                            Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS
+## protein_Intercept              0.20      0.07     0.05     0.34 1.00     2120
+## oil_Intercept                 -0.25      0.08    -0.40    -0.09 1.00     2195
+## protein_year                   0.29      0.07     0.14     0.44 1.00     1675
+## protein_locLawes              -0.38      0.11    -0.59    -0.18 1.00     2314
+## protein_locNambour            -0.66      0.10    -0.87    -0.46 1.00     2481
+## protein_locRedlandBay          0.26      0.11     0.05     0.47 1.00     2630
+## protein_year:locLawes         -0.21      0.11    -0.42    -0.01 1.00     1867
+## protein_year:locNambour        0.44      0.11     0.23     0.65 1.00     2240
+## protein_year:locRedlandBay     0.07      0.10    -0.14     0.28 1.00     2026
+## oil_year                      -0.12      0.08    -0.28     0.03 1.00     1625
+## oil_locLawes                   0.34      0.11     0.11     0.56 1.00     2469
+## oil_locNambour                 0.78      0.11     0.56     1.01 1.00     2556
+## oil_locRedlandBay             -0.13      0.12    -0.36     0.09 1.00     2763
+## oil_year:locLawes             -0.06      0.12    -0.29     0.15 1.00     1826
+## oil_year:locNambour           -0.37      0.11    -0.61    -0.15 1.00     2228
+## oil_year:locRedlandBay         0.07      0.11    -0.16     0.30 1.00     2042
+##                            Tail_ESS
+## protein_Intercept              2620
+## oil_Intercept                  2682
+## protein_year                   2444
+## protein_locLawes               3076
+## protein_locNambour             3224
+## protein_locRedlandBay          2995
+## protein_year:locLawes          2824
+## protein_year:locNambour        2974
+## protein_year:locRedlandBay     2215
+## oil_year                       2581
+## oil_locLawes                   3106
+## oil_locNambour                 3096
+## oil_locRedlandBay              3260
+## oil_year:locLawes              2357
+## oil_year:locNambour            2701
+## oil_year:locRedlandBay         2340
+## 
+## Family Specific Parameters: 
+##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma_protein     0.83      0.03     0.78     0.89 1.00     2849     3088
+## sigma_oil         0.90      0.03     0.84     0.96 1.00     3165     2608
+## 
+## Residual Correlations: 
+##                     Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## rescor(protein,oil)    -0.71      0.02    -0.75    -0.66 1.00     3072     2901
+## 
+## Samples were drawn using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
+<pre class="r"><code>plot(conditional_effects(mod_mv, effects = &quot;year:loc&quot;, resp = &quot;protein&quot;))</code></pre>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/multi%20model%20loo-1.png" width="672" /></p>
+<pre class="r"><code>plot(conditional_effects(mod_mv, effects = &quot;year:loc&quot;, resp = &quot;oil&quot;))</code></pre>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/multi%20model%20loo-2.png" width="672" /></p>
+<pre class="r"><code>mod_mv &lt;- add_criterion(mod_mv, &quot;loo&quot;)
+print(mod_mv$criteria$loo)</code></pre>
+<pre><code>## 
+## Computed from 4000 by 464 log-likelihood matrix
+## 
+##          Estimate   SE
+## elpd_loo  -1029.2 20.0
+## p_loo        18.1  0.9
+## looic      2058.4 40.0
+## ------
+## Monte Carlo SE of elpd_loo is 0.1.
+## 
+## All Pareto k estimates are good (k &lt; 0.5).
+## See help(&#39;pareto-k-diagnostic&#39;) for details.</code></pre>
+<p>Alternatively, if the two response variables have differing</p>
+</div>
+<div id="missing-data" class="section level2">
+<h2>Missing data</h2>
+<p>Missing data can be imputed using the mi() notation, you have to specify which predictors you want the model to use in imputing the missing data. This example is lifted directly from the missing data vignette in brms.</p>
+<pre class="r"><code>data(&quot;nhanes&quot;, package = &quot;mice&quot;)
+bform &lt;- bf(bmi | mi() ~ age * mi(chl)) +
+  bf(chl | mi() ~ age) + set_rescor(FALSE)
+fit &lt;- brm(bform, data = nhanes, cores = 4)
+summary(fit)</code></pre>
+<pre><code>##  Family: MV(gaussian, gaussian) 
+##   Links: mu = identity; sigma = identity
+##          mu = identity; sigma = identity 
+## Formula: bmi | mi() ~ age * mi(chl) 
+##          chl | mi() ~ age 
+##    Data: nhanes (Number of observations: 25) 
+## Samples: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup samples = 4000
+## 
+## Population-Level Effects: 
+##               Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## bmi_Intercept    13.84      8.43    -3.58    30.32 1.00     1589     2120
+## chl_Intercept   142.25     25.37    92.23   192.77 1.00     2972     2619
+## bmi_age           2.69      5.32    -7.63    13.42 1.00     1252     1926
+## chl_age          28.32     13.35     0.89    54.35 1.00     2907     2772
+## bmi_michl         0.10      0.04     0.01     0.18 1.00     1728     1901
+## bmi_michl:age    -0.03      0.02    -0.08     0.02 1.00     1339     1991
+## 
+## Family Specific Parameters: 
+##           Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma_bmi     3.35      0.75     2.23     5.12 1.00     1509     2425
+## sigma_chl    40.07      7.41    28.50    57.68 1.00     2081     2582
+## 
+## Samples were drawn using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
+<pre class="r"><code>plot(conditional_effects(fit, resp = &quot;bmi&quot;), ask = FALSE)</code></pre>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/missing%20data-1.png" width="672" /><img src="/tutorial/misc/brms-examples_files/figure-html/missing%20data-2.png" width="672" /><img src="/tutorial/misc/brms-examples_files/figure-html/missing%20data-3.png" width="672" /></p>
+</div>
+<div id="non-linear-models" class="section level2">
+<h2>Non-linear models</h2>
+<p>Non-linear models can also be fit within bf(), you have to specify that the model is non-linear (with nl = TRUE), and also specify the model parameters explicitly. If the model parameters are not dependent upon anything this takes the form of a param ~ 1 section, otherwise it can be a param ~ Variable section. The below example is based upon the example in the non-linear vignette in brms.</p>
+<pre class="r"><code>set.seed(45276)
+b &lt;- c(2, 0.75)
+x &lt;- rnorm(100)
+y &lt;- rnorm(100, mean = b[1] * exp(b[2] * x))
+site &lt;- gl(25,4)
+dat1 &lt;- data.frame(x, y, site)</code></pre>
+<pre class="r"><code>prior1 &lt;- prior(normal(1, 2), nlpar = &quot;b1&quot;) +
+  prior(normal(0, 2), nlpar = &quot;b2&quot;)
+fit1 &lt;- brm(bf(y ~ b1 * exp(b2 * x), b1 ~ (1|site), b2 ~ 1, nl = TRUE),
+            data = dat1, prior = prior1, cores = 4,
+            control = list(adapt_delta = 0.9))
+summary(fit1)</code></pre>
+<pre><code>##  Family: gaussian 
+##   Links: mu = identity; sigma = identity 
+## Formula: y ~ b1 * exp(b2 * x) 
+##          b1 ~ (1 | site)
+##          b2 ~ 1
+##    Data: dat1 (Number of observations: 100) 
+## Samples: 4 chains, each with iter = 2000; warmup = 1000; thin = 1;
+##          total post-warmup samples = 4000
+## 
+## Group-Level Effects: 
+## ~site (Number of levels: 25) 
+##                  Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sd(b1_Intercept)     0.09      0.07     0.00     0.25 1.00     2391     2096
+## 
+## Population-Level Effects: 
+##              Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## b1_Intercept     2.09      0.13     1.84     2.34 1.00     3041     2490
+## b2_Intercept     0.74      0.04     0.65     0.82 1.00     3138     2481
+## 
+## Family Specific Parameters: 
+##       Estimate Est.Error l-95% CI u-95% CI Rhat Bulk_ESS Tail_ESS
+## sigma     1.10      0.08     0.96     1.26 1.00     5510     3180
+## 
+## Samples were drawn using sampling(NUTS). For each parameter, Bulk_ESS
+## and Tail_ESS are effective sample size measures, and Rhat is the potential
+## scale reduction factor on split chains (at convergence, Rhat = 1).</code></pre>
+<pre class="r"><code>plot(fit1)</code></pre>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/nonlinear%20model%20plots-1.png" width="672" /></p>
+<pre class="r"><code>plot(conditional_effects(fit1), points = TRUE)</code></pre>
+<p><img src="/tutorial/misc/brms-examples_files/figure-html/nonlinear%20model%20plots-2.png" width="672" /></p>
+</div>
+</div>
