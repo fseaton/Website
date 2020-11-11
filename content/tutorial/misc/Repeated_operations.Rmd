@@ -3,7 +3,7 @@ title: 'Repeated operations: for loops, apply and parallelisation'
 author: Fiona Seaton
 date: 2020-11-11
 
-draft: true
+draft: false
 type: docs
 
 output:
@@ -173,7 +173,9 @@ test_list <- replicate(10, data.frame(x = rnorm(100), y = rnorm(100)),
                        simplify = FALSE)
 names(test_list) <- LETTERS[1:10]
 str(test_list)
+```
 
+```{r, eval = FALSE}
 lapply(names(test_list), function(i){
   write.csv(test_list[[i]], paste0("test_",i,".csv"))
 })
@@ -288,7 +290,7 @@ system.time({
 
 The apply family of functions is usually faster than a for loop, but in many cases the difference is so small that you may just prefer to go with what you're comfortable with.
 
-```{r for loop time}
+```{r for loop time apply}
 system.time({
   output <- matrix(nrow = 100000, ncol = 50)
   for(i in seq(1,nrow(output))){
