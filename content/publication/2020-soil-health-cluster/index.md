@@ -7,7 +7,7 @@ authors:
 - Simon Creer
 - Eleonora Fitos
 - Angus Garbutt
-- Rob I. Griffith
+- Robert I. Griffiths
 - Pete Henrys
 - Davey L. Jones
 - Patrick Keenan
