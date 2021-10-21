@@ -4,7 +4,7 @@ authors:
 - Fiona M. Seaton
 date: "2020-06-08"
 doi: ""
-featured: true
+featured: false
 image:
   caption: ''
   focal_point: ""

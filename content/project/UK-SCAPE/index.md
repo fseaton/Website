@@ -1,6 +1,6 @@
 ---
 date: "2020-11-11"
-external_link: https://www.ceh.ac.uk/ukscape
+external_link: https://uk-scape.ceh.ac.uk/
 image:
   caption: 
   focal_point: Smart
