@@ -38,8 +38,9 @@ library(ggplot2)
 dagify(rstan ~ stan,
        pystan ~ stan,
        cmdstan ~ stan,
+       cmdstanr ~ cmdstan,
        rstanarm ~ rstan,
-       brms ~ rstan) %>% 
+       brms ~ rstan + cmdstanr) %>% 
   ggdag_classic(layout = "tree") + theme_dag()
 ```
 
