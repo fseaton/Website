@@ -6,19 +6,19 @@ authors:
 - Tim Goodall
 - Inma Lebron
 - Lisa R. Norton
-date: "2021-09-13"
-doi: "10.1101/2021.09.13.460094"
+date: "2022-06-01"
+doi: "10.1016/j.agee.2022.107900"
 featured: false
 image:
   caption: ''
   focal_point: ""
   preview_only: false
 projects: ['SEEGSLIP']
-publication: 'bioRXiv'
+publication: 'Agriculture, Ecosystems & Environment'
 publication_short: ""
 publication_types:
 - "3"
-publishDate: "2021-09-15"
+publishDate: "2022-06-01"
 slides: ""
 summary: 
 tags:

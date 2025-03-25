@@ -39,7 +39,7 @@ user_groups:
 - Visitors
 ---
 
-I work as a quantitative ecologist within the Land Use Group in the [UK Centre for Ecology & Hydrology](https://www.ceh.ac.uk). I started my research associate position there in March 2020, so far I am doing data analysis on a variety of ecological field surveys. This includes analysis of plant response to soil pH and atmospheric deposition across the UK as part of the UK-SCAPE project plus the soil microbial response to pasture farming systems.
+I work as a quantitative ecologist within the Land Use Group in the [UK Centre for Ecology & Hydrology](https://www.ceh.ac.uk). I started there in March 2020, working on a mix of data analysis on a variety of ecological field surveys and statistical methods development. This includes analysis of long term trends in the vegetation and soils of British woodlands, developing an R package for joint species distribution models [(jsdmstan)](https://github.com/NERC-CEH/jsdmstan), and working on various data integration problems.
 
 My PhD was in soil ecology at the UK Centre for Ecology & Hydrology and Bangor University. I looked at the relationships between soil structure, biodiversity and health - which is a fancy way of saying that I did a lot of disparate analyses! Most of this work was using data from the field survey within Glastir Monitoring and Evaluation Programme [(GMEP)](https://gmep.wales/) which surveyed sites across Wales for a wide variety of properties. I also looked at the impact of simulated climate change on microbial communities in an [upland heathland site maintained by the Centre for Ecology & Hydrology](https://www.ceh.ac.uk/our-science/monitoring-sites/experimental-sites-uplands-monitoring-and-soil-research).
 

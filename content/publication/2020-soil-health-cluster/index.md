@@ -22,7 +22,7 @@ authors:
 - David A. Robinson
 date: "2020-03-11"
 doi: "10.1111/ejss.12958"
-featured: true
+featured: false
 image:
   caption: ''
   focal_point: ""
