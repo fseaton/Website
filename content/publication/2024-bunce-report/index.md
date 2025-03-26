@@ -20,7 +20,7 @@ slides: ""
 summary: Report from the Bunce Woodland Survey
 tags:
 - data
-title: Fifty years of change across British broadleaved woodlands: a resurvey and analysis of the “Bunce” sites 1971-’01-’21
+title: "Fifty years of change across British broadleaved woodlands: a resurvey and analysis of the “Bunce” sites 1971-’01-’21"
 url_code: ""
 url_dataset: "https://doi.org/10.5285/42c203c8-44de-40e2-a694-b1e8cbd4c8e1"
 url_pdf: ""
