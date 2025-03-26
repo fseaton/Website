@@ -67,9 +67,9 @@
 # CSS
 
 [css.fontAwesome]
-  version = "6.7.1"
-  sri = "sha512-gUmZC4CtgECJeVW1aeRk2AmpdQsl1ABsR8Cp4PmvANxm+TzwNNpe2MoJT/htbYsn0GR9+sIMDrd9vT9Pt0ZANA=="
-  url = "https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.1/css/all.css"
+  version = "5.6.0"
+  sri = "sha384-aOkxzJ5uQz7WBObEZcHvV5JvRW3TUc2rNPA7pe3AwnsUohiw1Vj2Rgx2KSOkF5+h"
+  url = "https://use.fontawesome.com/releases/v%s/css/all.css"
 [css.academicons]
   version = "1.8.6"
   sri = "sha256-uFVgMKfistnJAfoCUQigIl+JfUaP47GrRKjf6CTPVmw="
