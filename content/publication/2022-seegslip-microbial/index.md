@@ -17,7 +17,7 @@ projects: ['SEEGSLIP']
 publication: 'Agriculture, Ecosystems & Environment'
 publication_short: ""
 publication_types:
-- "3"
+- "2"
 publishDate: "2022-06-01"
 slides: ""
 summary: 
