@@ -10,7 +10,7 @@ education:
   - course: BA Natural Sciences
     institution: University of Cambridge
     year: 2015
-email: "fiona_seaton@outlook.com"
+email: "fionamargaretseaton@gmail.com"
 interests:
 - Soil science
 - Microbial ecology
@@ -19,11 +19,14 @@ name: Fiona Seaton
 organizations:
 - name: UK Centre for Ecology & Hydrology
   url: ""
-role: Research Associate - Quantitative Ecologist
+role: Quantitative Ecologist
 social:
 - icon: envelope
   icon_pack: fas
   link: '#contact'
+- icon: bluesky
+  icon_pack: fab
+  link: https://bsky.app/profile/fionaseaton.bsky.social
 - icon: twitter
   icon_pack: fab
   link: https://twitter.com/Plantdirt
