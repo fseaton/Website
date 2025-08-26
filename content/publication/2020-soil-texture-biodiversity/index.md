@@ -9,7 +9,7 @@ authors:
 - David A. Robinson
 date: "2020-03-04"
 doi: "10.1016/j.soilbio.2020.107766"
-featured: true
+featured: false
 image:
   caption: ''
   focal_point: ""
